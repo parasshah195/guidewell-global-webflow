@@ -1,0 +1,1 @@
+function e(){let t=document.querySelectorAll('[data-el="current-year"]'),r=new Date().getFullYear().toString();t.forEach(n=>{n.textContent=r})}window.Webflow||(window.Webflow=[]);window.Webflow.push(()=>{e()});

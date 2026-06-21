@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Keep auto-generated git commit messages to be concise. Do mention the changes and details, but keep it short.

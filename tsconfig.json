@@ -1,0 +1,13 @@
+{
+  "extends": "@finsweet/tsconfig",
+  "compilerOptions": {
+    "module": "ESNext",
+    "rootDir": "./src",
+    "baseUrl": "./",
+    "paths": {
+      "$utils/*": ["src/utils/*"],
+      "$types/*": ["src/types/*"],
+      "$dev/*": ["src/dev/*"]
+    }
+  }
+}

@@ -1,0 +1,79 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Project Research Document (PRD) for Cursor: Webflow JS Starter
+
+## 1. Project Context & Architecture
+- This is a Webflow project where JavaScript/TypeScript is authored and managed separately from the HTML/CSS, which remain in Webflow.
+- Scripts are not bundled into a single file; instead, each script is loaded individually per page as needed. Only `src/entry.ts` (built as `entry.js`) is loaded globally.
+- The codebase is modular, with utilities, components, and page-specific scripts organized in `src/utils/`, `src/components/`, and `src/pages/` respectively.
+- The project is hosted on GitHub and production scripts are loaded via [jsDelivr CDN](https://www.jsdelivr.com/).
+
+## 2. Build & Development Workflow
+- Uses [Bun](https://bun.sh/) as the primary build tool, with support for `pnpm` and `npm` as alternatives.
+- Build logic is in `bin/build.js` and uses [esbuild](https://esbuild.github.io/) for bundling, minification, and output.
+- Development server runs at `localhost:3000` for local testing; production builds output to `./dist/prod`.
+- Scripts are loaded dynamically using the global `window.loadScript` function, which deduplicates and supports custom events.
+- Environment switching between local and CDN is managed via `window.setScriptMode` and `window.SCRIPTS_ENV` (see `src/dev/env.ts`).
+- Debug mode is toggled via `window.setDebugMode` and `window.IS_DEBUG_MODE` (see `src/dev/debug.ts`).
+
+## 3. TypeScript & Global Types
+- All global variables, types, and browser extensions are defined in `src/types/global.d.ts`.
+- Always use types from `global.d.ts` before importing from external libraries.
+- Extends `ParentNode` to allow type-safe `querySelector`/`querySelectorAll` returning `HTMLElement`.
+- GSAP and ScrollTrigger are globally available (from CDN) and typed in `global.d.ts`.
+
+## 4. Naming & Selection Conventions
+- **Constants:** Use `UPPER_SNAKE_CASE` for constant variables, placed at the top of the file (see `src/constants.ts`).
+- **Data Attributes:** Always use `data-el="{{contextual value}}"` for selecting HTML elements instead of class names. For specialized modules, use custom data attributes (e.g., `data-marquee-el="component"`).
+- **File Naming:** Use kebab-case for files and folders. Page scripts are named after the page (e.g., `home.ts`).
+- **No jQuery:** Never use jQuery, even if Webflow loads it. Use vanilla TypeScript and modern browser APIs.
+
+## 5. Error Handling, Debugging, and Logging
+- Always handle errors gracefully. Use `console.error` for errors, and `console.debug` for debug logs (never `console.log`).
+- Debugging features (e.g., GSAP markers) should be toggled via `window.IS_DEBUG_MODE`.
+- Console logs should use styles from `src/dev/console-styles.ts` for clarity.
+- Minimize code comments; code should be self-explanatory and modular. Only comment on complex or non-obvious logic.
+
+## 6. Performance & Browser APIs
+- Prioritize performance and modern browser APIs (e.g., use `IntersectionObserver` instead of scroll event listeners).
+- Scripts should be modular and only loaded when needed for a given page.
+- Avoid global side effects; keep logic scoped to the relevant module or component.
+
+## 7. Animation & Library Usage
+- Prefer [GSAP](https://greensock.com/gsap/) for all animations. Use ScrollTrigger for scroll-based effects.
+- Use [Finsweet TS Utils](https://finsweet.com/ts-utils/) for Webflow-related utilities.
+- Only import external libraries if native browser APIs are insufficient, and always explain the reasoning in code comments if used.
+
+## 8. File/Module Structure & Loading
+- `src/entry.ts` is the global entry point and should only contain logic needed for all pages.
+- Page-specific scripts go in `src/pages/` and are loaded per page as needed.
+- Shared logic goes in `src/utils/` (utility functions) or `src/components/` (UI components/modules).
+- All scripts are loaded as ES modules by default.
+
+## 9. Formatting & Linting
+- Uses [Prettier](https://prettier.io/) for code formatting. See `.prettierrc.json` for rules (e.g., trailing commas, single quotes, 2-space tabs, 100-char print width).
+- Uses `@trivago/prettier-plugin-sort-imports` for import order: third-party, `$`-prefixed, then relative imports.
+- ESLint is present but not strictly enforced; no testing frameworks are used.
+
+## 10. External Documentation & References
+- [Webflow API Docs LLMs](https://developers.webflow.com/llms.txt)
+- [Webflow Data API Reference](https://developers.webflow.com/v2.0.0/data/reference/rest-introduction.mdx)
+- [Finsweet TS Utils Docs](https://finsweet.com/ts-utils/)
+- [jsDelivr CDN Docs](https://www.jsdelivr.com/documentation)
+- [Bun Documentation](https://bun.sh/docs)
+- [esbuild Documentation](https://esbuild.github.io/)
+
+## 11. Tribal Knowledge & Anti-Patterns
+- Never use jQuery or any legacy DOM libraries.
+- Always prefer vanilla TypeScript and modern browser APIs.
+- Always use data attributes for DOM selection to avoid coupling with Webflow class names.
+- Never handle user data or sensitive information in this codebase.
+- Avoid global side effects; keep logic modular and page/component-scoped.
+- Do not use batch script loading; always use `window.loadScript` for dynamic script loading.
+
+---
+
+This document is for AI tools (like Cursor) to generate code that is idiomatic, performant, and maintainable within the context of this Webflow JS Starter project. For any integration with Webflow APIs, refer to the official [Webflow API Documentation](https://developers.webflow.com/llms.txt).
