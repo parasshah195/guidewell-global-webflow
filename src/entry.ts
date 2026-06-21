@@ -16,7 +16,7 @@ interface ScriptOptions {
   scriptName?: string;
 }
 
-window.PRODUCTION_BASE = 'https://cdn.jsdelivr.net/gh/parasshah195/{{repo}}/dist/prod/';
+window.PRODUCTION_BASE = 'https://cdn.jsdelivr.net/gh/parasshah195/guidewell-global-webflow/dist/prod/';
 const relativePathBase = window.SCRIPTS_ENV === 'local' ? LOCAL_SERVER : window.PRODUCTION_BASE;
 
 /**

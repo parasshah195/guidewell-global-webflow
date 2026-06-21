@@ -31,7 +31,7 @@ The project will process and output the files mentioned in the `files` const of 
 1. The initial `entry.js` file needs to be made available via external server first for this system to work (in the `<head>` area of the site).
 
    ```html
-   <script src="https://cdn.jsdelivr.net/gh/parasshah195/{{repo}}/dist/prod/entry.js"></script>
+   <script src="https://cdn.jsdelivr.net/gh/parasshah195/guidewell-global-webflow/dist/prod/entry.js"></script>
    ```
 
    For occasional localhost testing when editing `entry.js`, you'll have to manually include that script like following:
