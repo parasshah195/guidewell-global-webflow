@@ -79,10 +79,6 @@ bun test         # unit checks
 Default bump is patch; put `#minor` / `#major` in the merge commit message to bump higher.
 Current branch is `dev`; do feature work off `dev`, PR into `main`.
 
-⚠️ **Setup nuance:** `window.PRODUCTION_BASE` in `src/entry.ts` still has the template's
-`{{repo}}` placeholder (`.../gh/parasshah195/{{repo}}/dist/prod/`). Set it to the real repo before
-relying on CDN mode. jsDelivr caches tagged files ~12h — purge via their tool after a release if needed.
-
 ---
 
 ## Architecture essentials (the non-obvious rules)
