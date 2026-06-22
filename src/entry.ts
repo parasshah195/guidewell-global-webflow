@@ -1,6 +1,17 @@
+import dayjs from 'dayjs';
+import advancedFormat from 'dayjs/plugin/advancedFormat';
+import timezone from 'dayjs/plugin/timezone';
+import utc from 'dayjs/plugin/utc';
+
 import '$dev/debug';
 import '$dev/env';
 import { LOCAL_SERVER } from '$dev/env';
+
+// Single global dayjs instance — date modules use `window.dayjs`, never `import dayjs` (PRD §3.5)
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(advancedFormat);
+window.dayjs = dayjs;
 
 /**
  * Entry point for the build system.
@@ -64,3 +75,12 @@ window.loadScript = function (url, options): Promise<void> {
     document[opts.placement].appendChild(script);
   });
 };
+
+/**
+ * Loads each component bundle, then `alpine.js` last so every `alpine:init` listener is
+ * registered before `Alpine.start()` fires (PRD §9).
+ */
+window.startAlpine = (components: string[]): Promise<void> =>
+  Promise.all(components.map((name) => window.loadScript(`components/${name}.js`))).then(() =>
+    window.loadScript('alpine.js')
+  );

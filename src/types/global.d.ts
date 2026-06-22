@@ -1,4 +1,6 @@
 import type { Webflow } from '@finsweet/ts-utils';
+import type Alpine from 'alpinejs';
+import type dayjsType from 'dayjs';
 import type GSAP from 'gsap';
 import type ScrollTrigger from 'gsap/ScrollTrigger';
 
@@ -21,6 +23,10 @@ declare global {
     PRODUCTION_BASE: string;
 
     loadScript: (url: string, options?: ScriptOptions) => Promise<void>;
+    startAlpine(components: string[]): Promise<void>;
+
+    Alpine: typeof Alpine;
+    dayjs: typeof dayjsType;
   }
 
   // Extend `querySelector` and `querySelectorAll` function to stop the nagging of converting `Element` to `HTMLElement` all the time
