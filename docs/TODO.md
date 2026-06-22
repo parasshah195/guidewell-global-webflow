@@ -8,8 +8,8 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 ## Phase 1 — Foundation + event lists + filters
 
 ### 0. Setup
-- [ ] `package.json`: add deps `alpinejs`, `dayjs`, `@easepick/core`, `@easepick/range-plugin`
-      (and `@easepick/lock-plugin` if a min-date constraint is wanted); devDep `@types/alpinejs`. Run `bun install`.
+- [ ] `package.json`: add deps `alpinejs`, `dayjs`; devDep `@types/alpinejs`. Run `bun install`.
+      (No EasePick — date range uses two native `<input type="date">` with an `x-bind:min` constraint.)
 - [ ] `tsconfig.json`: add path aliases under `compilerOptions.paths`:
       `"$api/*": ["src/api/*"]`, `"$stores/*": ["src/stores/*"]`, `"$constants": ["src/constants.ts"]`.
 - [ ] `bin/build.js`: add `'./src/alpine.ts'` to the `files` array (new entry point).
@@ -17,8 +17,9 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 
 ### 1. Config — `src/constants.ts`  (PRD §10)
 - [ ] Export `API_BASE` (placeholder slug, `// ponytail:` comment), `DEFAULT_EVENT_LIMIT = 12`,
-      `VIEW_MORE_LIMIT = 6`, `DEFAULT_TIMEZONE = 'Europe/London'`,
+      `DEFAULT_TIMEZONE = 'Europe/London'`,
       `TEST_TOPIC_IDS: Record<string, number[]>` with empty SAT/ACT/AP/PSAT arrays + TODO.
+      (No `VIEW_MORE_LIMIT` — `viewMore` pages by the same `limit`.)
 - **Verify:** file type-checks; values referenced by later modules resolve.
 
 ### 2. API layer  (PRD §8)
@@ -31,13 +32,17 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 
 ### 3. Utils  (PRD §8)
 - [ ] `src/utils/event-attrs.ts`: `setEventQueryFromAttr(el, component)` (loops `query-*` attrs,
-      checks `QueryParamsProperties`, writes `component.apiBody[key]`) + **exported** `parseAttrValue(value)`
-      (number → date → bool → array → string) + internal `arrayCheck`.
-- [ ] `src/utils/event-format.ts`: dayjs (`import dayjs from 'dayjs'` + extend `utc`, `timezone`,
-      `advancedFormat`) versions of `isMultiDayEvent`, `getEventDateRange`, `getTimeRange`, `getDays`,
-      `getTimings`, `getTestsList`; add `getPriceSummary(events)` (£ min–max) and
+      checks `QueryParamsProperties`, writes `component.baseParams[key]`) + **exported** `parseAttrValue(value)`
+      (number → date → bool → array → string) + internal `arrayCheck`. Add a `// ponytail:` comment
+      on `parseAttrValue` naming the coercion ceiling (all-digit `event_code` → number; loose `Date.parse`).
+- [ ] `src/utils/event-format.ts`: uses the **global `dayjs`** (initialised in `entry.ts` — do NOT
+      `import dayjs` here, so esbuild keeps it external). Implement `isMultiDayEvent`,
+      `getEventDateRange`, `getTimeRange`; add `getPriceSummary(events)` (£ min–max) and
       `filterExcludedTopics(el, events)` (reads `data-topics-exclude`). All formatting in `DEFAULT_TIMEZONE`.
-- [ ] `src/utils/query-params.ts`: port `setQueryParam` + `setQueryParams` only (skip unused helpers).
+      **Skip** `getDays`/`getTimings`/`getTestsList` and the Summit `DateTimeRange` type +
+      `startDateShort`/`WithWeekday`/etc. fields — port only when a page needs them.
+- [ ] URL get/set: **no `utils/query-params.ts`** — fold `getQueryParam` + `setQueryParams` into
+      `stores/filters.ts` (its only consumer; see step 5). Skip `setQueryParam` single / `getAllQueryParams` / `removeAllQueryParams`.
 - **Verify:** `bun run build` compiles these (they're pulled in once components exist; spot-check no esbuild errors after step 6).
 
 ### 4. Type helper — `src/types/alpine.ts`
@@ -45,8 +50,12 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
       so component method `this` is typed.
 
 ### 5. Alpine bridge + store  (PRD §9)
-- [ ] `src/stores/filters.ts`: `FiltersStore` interface, `FilterLocation`, `FILTERS_STORE = 'filters'`,
-      `registerFiltersStore()` (registers store incl. `reset()`), `getFiltersStore()` accessor.
+- [ ] `src/stores/filters.ts`: **behavioral store** (no separate filterForm component).
+      `FiltersStore` interface, `FilterLocation`, `FILTERS_STORE = 'filters'`, `registerFiltersStore()`,
+      `getFiltersStore()` accessor. Store includes: `init()` (hydrate from URL once via `getQueryParam`,
+      then `Alpine.effect(() => syncUrl(this))` — one-directional: URL→store once, store→URL on change),
+      `toggleTest`, `toggleDay`, `reset()` (zero all fields **in place — never `location.reload()`**),
+      internal `syncUrl` (via `setQueryParams`), and the folded-in `getQueryParam`/`setQueryParams`.
 - [ ] `src/alpine.ts`: `import Alpine from 'alpinejs'` → `window.Alpine = Alpine`;
       `addEventListener('alpine:init', registerFiltersStore)`; port Webflow fixup
       (`replaceDotAttributes`, `wrapInTemplate`, `clearTransitionValues`) from Summit `alpineWebflow.ts`
@@ -54,22 +63,26 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 - **Verify:** `bun run build` emits `dist/prod/alpine.js` (self-contained, bundles Alpine).
 
 ### 6. Components  (PRD §6, §8)
-- [ ] `src/components/event-list.ts`: register `eventList` on `alpine:init` (no Alpine import).
-      `EventListState` interface + cast `as AlpineComponent<EventListState>`. Implement
-      `init/reload/query/viewMore/applyFilters`, `get groups`, `dateRange`/`timeRange` helpers.
-      Read attrs from `this.$root`. **Don't** port slider/blog-shuffle/tag-image code.
-- [ ] `src/components/filter-form.ts`: register `filterForm` on `alpine:init`. `init()` hydrates
-      store from URL params, instantiates **EasePick** (`@easepick/core` + `RangePlugin`) on
-      `x-ref="dateRange"` (single input → start+end; `select` writes `dateAfter`/`dateBefore` to store),
-      then `Alpine.effect(() => syncUrl(getFiltersStore()))`. Methods: `toggleTest`, `toggleDay`,
-      `reset` (also clears the picker), `syncUrl` (via `setQueryParams`). Ensure EasePick CSS is loaded
-      (CDN `<link>` in Webflow head, or inject in `init`).
-- **Verify:** `bun run build` emits `dist/prod/components/event-list.js` + `filter-form.js`, no errors.
+- [ ] `src/components/event-list.ts` (the **only** component): register `eventList` on `alpine:init`
+      (no Alpine import). `EventListState` interface + cast `as AlpineComponent<EventListState>`.
+      State: `baseParams: QueryParams` (set once at init), `status: 'loading'|'error'|'empty'|'ready'`
+      (single phase enum — replaces `isLoading`/`isError`/`isEmpty`), plus `depleted`/`moreLoading`.
+      Implement `init/reload/query/viewMore`, `get groups`, `dateRange`/`timeRange` helpers, and
+      `applyFilters(f): Partial<QueryParams>` as a **pure mapper** (no mutation; `both` → omit
+      `is_online`). `query()` builds `apiBody = { ...baseParams, ...applyFilters(store), start, limit }`
+      fresh each call and sets `status` along its branches. `init()` with `data-use-filters` wraps the
+      re-query in an `Alpine.effect` with a **~200ms trailing debounce** (date range = two inputs → one
+      fetch, not two). Read attrs from `this.$root`. **Don't** port slider/blog-shuffle/tag-image code.
+- (No `filter-form.ts` — the filter UI binds directly to `$store.filters`; behaviour lives in the store, step 5.)
+- **Verify:** `bun run build` emits `dist/prod/components/event-list.js`, no errors.
 
 ### 7. Wiring  (PRD §9)
 - [ ] `src/entry.ts`: add `window.startAlpine = (components) => Promise.all(...loadScript).then(loadScript('alpine.js'))`.
-- [ ] `src/types/global.d.ts`: add to `Window` — `Alpine: typeof import('alpinejs').default;`
-      and `startAlpine(components: string[]): Promise<void>;`.
+      Also init dayjs **once** here: `import dayjs` + extend `utc`/`timezone`/`advancedFormat`, then
+      `window.dayjs = dayjs` (single global; date modules use it without importing — see PRD §3/§7/§11).
+- [ ] `src/types/global.d.ts`: add to `Window` — `Alpine: typeof import('alpinejs').default;`,
+      `startAlpine(components: string[]): Promise<void>;`, and `dayjs: typeof import('dayjs').default;`
+      (+ a global `dayjs` declaration so format modules can reference it unimported).
 - **Verify:** `bun run build` compiles entry with new global types.
 
 ### 8. Test  (PRD §11)
@@ -86,8 +99,9 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 ### 10. Live verification (needs real API_BASE slug + topic IDs — PRD §10, §12 steps 4–6)
 - [ ] Fill `API_BASE` slug + `TEST_TOPIC_IDS` from GWG.
 - [ ] On GWG staging: `setScriptMode('local')`, place an `eventList` + `x-for` template → events render.
-- [ ] Wire `filterForm` + `data-use-filters` list → filtering re-queries; URL syncs; reload restores.
-- [ ] Confirm `isLoading` / `isEmpty` / `isError` / `depleted` states (CSV #10).
+- [ ] Bind a filter UI to `$store.filters` + a `data-use-filters` list → filtering re-queries (once,
+      debounced); URL syncs; reload restores; `reset()` clears in place (no page reload).
+- [ ] Confirm `status` (`loading`/`error`/`empty`/`ready`) + `depleted` states (CSV #10); exactly one block shows.
 - [ ] Practice Tests: `data-group-by="location"` → in-person groups first, online last, per-group price note.
 
 ---

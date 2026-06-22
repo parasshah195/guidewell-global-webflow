@@ -41,8 +41,11 @@ with auto-fallback to CDN (see `src/entry.ts`, `src/dev/env.ts`, `bin/build.js`)
 ### Keep these Summit dependencies (required)
 | Dependency | Why it's required for GWG |
 |---|---|
-| **`dayjs`** (+ `utc`, `timezone`, `advancedFormat` plugins) | All event date/time handling goes through dayjs so values sent to and parsed from OneCanoe are **timezone-correct**. The API takes/returns timestamps with offsets and a `timezone` param; native `Intl` is not sufficient for the round-trip. Used in `event-format.ts` and in `eventList.applyFilters` (building `after`/`before`/`timezone`). |
-| **`@easepick/core` + `@easepick/range-plugin`** | The filter date range is a **single input** that captures both start and end dates (one EasePick range field), per design. Also pull `@easepick/lock-plugin` if a min-date (today) constraint is needed. |
+| **`dayjs`** (+ `utc`, `timezone`, `advancedFormat` plugins) | All event date/time handling goes through dayjs so values sent to and parsed from OneCanoe are **timezone-correct**. The API takes/returns timestamps with offsets and a `timezone` param; native `Intl` is not sufficient for the round-trip. Used in `event-format.ts` and in `eventList.applyFilters` (building `after`/`before`/`timezone`). **Loaded once as a global in `entry.ts`** (`window.dayjs`), not imported per component — see §3 and §7. |
+
+dayjs is the **only** required non-native dependency. The filter date range uses **two native
+`<input type="date">`** (start + end), not a date-picker library — the end input's `min` is bound
+to the start value for the start-before-end constraint. (Summit used EasePick; dropped here.)
 
 ### Drop / don't port (YAGNI for Phase 1)
 - The `QueryAPI` **abstract class + `EventQuery` subclass** → collapse to one `fetchEvents()` function. One endpoint, one function.
@@ -57,21 +60,32 @@ with auto-fallback to CDN (see `src/entry.ts`, `src/dev/env.ts`, `bin/build.js`)
 1. **One generic, attribute-driven `eventList` component** covers every events feed
    (Home, Practice Tests, Group Classes, Webinars, Events page). Behaviour is configured
    entirely by HTML attributes on the `x-data` element — no per-page JS.
-2. **One shared `filters` Alpine store** + **one `filterForm` component**. Lists opt into
-   the store via a `data-use-filters` attribute and re-query on change.
+2. **One shared, behavioral `filters` Alpine store** — no separate `filterForm` component. The
+   store owns its own `init()` (hydrate from URL → mirror back to URL), `toggleTest`/`toggleDay`/
+   `reset` methods, and URL get/set. Webflow binds the filter UI **directly** to the store
+   (`x-model="$store.filters.dateAfter"`, `@change="$store.filters.toggleTest('SAT')"`). Lists opt
+   in via a `data-use-filters` attribute and re-query on change. Because Alpine runs store `init()`
+   *before* any component `init()`, URL→store hydration completes before lists subscribe → single
+   initial fetch, no double-query.
 3. **Single `fetchEvents(params)` function** for all API access (no class hierarchy).
 4. **Components never `import` Alpine.** They register on `window.addEventListener('alpine:init', …)`
    using the global `window.Alpine`. Only `src/alpine.ts` imports Alpine. (Prevents esbuild
    from bundling Alpine into every component file.)
-5. **dayjs for all timezone handling; EasePick (single input, range plugin) for the date range UI.**
-   These two deps are required (see §2). The date range is one EasePick field that captures start
-   *and* end; on select it writes `dateAfter`/`dateBefore` (YYYY-MM-DD) to the store, and
-   `applyFilters` converts them through dayjs into timezone-correct `after`/`before` + `timezone`
-   params for the API.
+5. **dayjs for all timezone handling; two native date inputs for the date range UI.** dayjs is the
+   one required dep (see §2) and is loaded **once as a global** in `entry.ts` (`window.dayjs`) so
+   it is not duplicated across component bundles (esbuild multi-entry has no code splitting). The
+   date range is two native `<input type="date">` (start + end) bound straight to the store
+   (`dateAfter`/`dateBefore`, YYYY-MM-DD), with the end input's `min` bound to the start value;
+   `applyFilters` converts them through the global dayjs into timezone-correct `after`/`before` +
+   `timezone` params for the API.
 6. **API endpoint + topic IDs live in `src/constants.ts`** as the single config surface.
+7. **`eventList`'s query body is derived, not mutated.** Base params (from `query-*` attrs) are set
+   once into `baseParams`; `applyFilters` is a pure `store → Partial<QueryParams>` mapper; the body
+   is computed fresh per query as `{ ...baseParams, ...filterParams, start, limit }`. A cleared
+   filter is simply absent — no stale keys to delete.
 
-**Component count target:** Summit ~29 → GWG Phase 1 = **2 components + 1 store**
-(`eventList`, `filterForm`, `filters` store).
+**Component count target:** Summit ~29 → GWG Phase 1 = **1 component + 1 store**
+(`eventList` + behavioral `filters` store).
 
 ---
 
@@ -79,7 +93,7 @@ with auto-fallback to CDN (see `src/entry.ts`, `src/dev/env.ts`, `bin/build.js`)
 
 ### Phase 1 (this PRD) — Foundation + event lists + filters
 Foundation (Alpine bridge, API layer, utils), the generic `eventList`, and the filter
-system (`filters` store + `filterForm`). Covers CSV deliverables #1, #6, #7, #8 (list/filter
+system (behavioral `filters` store; UI binds directly to it). Covers CSV deliverables #1, #6, #7, #8 (list/filter
 parts) and the error/empty states of #10.
 
 ### Roadmap (later phases, NOT built now)
@@ -98,10 +112,10 @@ parts) and the error/empty states of #10.
 | CSV # | Deliverable | Phase 1 implementation |
 |---|---|---|
 | 1 | Events API across pages | `eventList` instances with different `query-*` attrs per page. |
-| 6 | Practice Tests page + filters | `eventList` with `data-group-by="location"` + `data-use-filters`; `filterForm` (tests, location, date range, ET, days, **proctored**); per-group cost note via `getPriceSummary`. |
+| 6 | Practice Tests page + filters | `eventList` with `data-group-by="location"` + `data-use-filters`; filter UI bound directly to the `filters` store (tests, location, date range via two native date inputs, ET, days, **proctored**); per-group cost note via `getPriceSummary`. |
 | 7 | Group Classes (SAT only) | `eventList` with `query-category="['class']"` + SAT `query-topics`. |
 | 8 | Webinars page | Two `eventList` instances: Featured (limit 3) + Upcoming (date-sorted). Tag images deferred. |
-| 10 | Testing / edge cases | `isLoading` / `isEmpty` / `isError` / `depleted` states on `eventList`. |
+| 10 | Testing / edge cases | `status` (`loading`/`error`/`empty`/`ready`) + `depleted`/`moreLoading` states on `eventList`. |
 | 3 | Combination sliders (blog + events) | Deferred — "nice to have, not a priority." |
 | 2, 4, 5 | Google Sheets, Campaign Landing, Search | Later phases (see roadmap). |
 
@@ -115,6 +129,11 @@ The component reads them off `this.$root` — **no `x-ref` needed**.
 ### `query-*` — API parameters (parsed & type-coerced)
 Any `QueryParams` key, prefixed with `query-`. Value type is auto-detected:
 number (`12`), date (`2026-07-01`), boolean (`true`/`false`), array (`['SAT','ACT']` or `[134,49]`), else string.
+
+> **Coercion ceiling (`parseAttrValue`):** detection is by string *shape*, not by target key. Edge:
+> an all-digit `event_code` would coerce to a number, and `Date.parse` is loose. Acceptable for the
+> current attrs; upgrade to per-key typed coercion (keyed off `QueryParamsProperties`) only if a
+> real value ever collides. Covered by `event-attrs.test.ts`.
 
 | Attribute | Example | Maps to |
 |---|---|---|
@@ -135,20 +154,31 @@ number (`12`), date (`2026-07-01`), boolean (`true`/`false`), array (`['SAT','AC
 | `data-topics-exclude` | `SAT,ACT` | Drop events whose topics intersect this list. |
 
 ### Component state exposed to the template
-`events: APIResponse[]`, `groups: EventGroup[]`, `isLoading`, `isEmpty`, `isError`,
-`depleted`, `moreLoading`. Helpers: `dateRange(event)`, `timeRange(start, end)`, `viewMore()`.
+`events: APIResponse[]`, `groups: EventGroup[]`, and a single phase enum
+`status: 'loading' | 'error' | 'empty' | 'ready'` (exactly one full-screen UI block shows — bind
+`x-show="status === 'error'"` etc.; no contradictory/limbo combos), plus the orthogonal sub-flags
+`depleted` and `moreLoading` (apply only while `ready`). Helpers: `dateRange(event)`,
+`timeRange(start, end)`, `viewMore()`.
 
-### `filterForm` bindings (Webflow filter UI)
-Bind controls directly to the store, e.g. `x-model="$store.filters.location"`,
-`@change="toggleTest('SAT')"`, `@click="reset()"`. The form hydrates the store from URL
-params on load and mirrors store → URL on change (shareable/bookmarkable filters).
+### Filter UI bindings (Webflow → `filters` store)
+There is **no `filterForm` component** — the Webflow filter controls bind **directly** to the
+behavioral `filters` store:
+- `x-model="$store.filters.location"`, `@change="$store.filters.toggleTest('SAT')"`,
+  `@click="$store.filters.reset()"`.
+- **Date range — two native date inputs:**
+  ```html
+  <input type="date" x-model="$store.filters.dateAfter">
+  <input type="date" x-model="$store.filters.dateBefore" x-bind:min="$store.filters.dateAfter">
+  ```
+  The end input's `min` (bound to the start value) prevents an end-before-start selection — no
+  picker library, no CDN CSS. The store keeps dates as plain `YYYY-MM-DD` strings; the global
+  dayjs does the timezone conversion when building API params (see §3.5, §8).
 
-**Date range — EasePick single input:** `filterForm.init()` instantiates one EasePick instance
-(`@easepick/core` + `RangePlugin`) on the date input referenced by `x-ref="dateRange"`. Its
-`select` callback writes `dateAfter`/`dateBefore` (YYYY-MM-DD) to the store; `reset()` clears
-the picker too. EasePick CSS must be present — add the pinned CDN `<link>` in the Webflow page
-`<head>` (or inject it in `init`). The store keeps dates as plain strings; dayjs does the
-timezone conversion when building API params (see §3.5, §8).
+**URL sync is one-directional:** the store's `init()` hydrates from the URL **once**
+(`URL → store`), then an `Alpine.effect` mirrors `store → URL` on every change
+(shareable/bookmarkable). The URL is never read again after init — this prevents sync loops.
+`reset()` zeroes the store **in place** (never `window.location.reload()`); the lists' effects
+re-query automatically.
 
 ---
 
@@ -158,27 +188,26 @@ timezone conversion when building API params (see §3.5, §8).
 src/
   constants.ts            # CONFIG: API_BASE slug, limits, timezone, TEST_TOPIC_IDS  ← fill before go-live
   alpine.ts               # NEW entry: imports Alpine, Webflow bridge, registers filters store, starts Alpine
-  entry.ts                # EDIT: add window.startAlpine() helper
+  entry.ts                # EDIT: add window.startAlpine() helper; init dayjs (+ plugins) → window.dayjs
   global.ts               # unchanged
   api/
     types.ts              # port of Summit eventQueryTypes.ts (+ proctored)
     events.ts             # fetchEvents(params)
   stores/
-    filters.ts            # FiltersStore type + registerFiltersStore() + getFiltersStore()
+    filters.ts            # behavioral store: FiltersStore type, register/get accessors, init()
+                          #   (URL hydrate + mirror), toggleTest/toggleDay/reset, getQueryParam/setQueryParams
   components/
-    event-list.ts         # generic attribute-driven component
-    filter-form.ts        # filter UI ↔ store ↔ URL
+    event-list.ts         # generic attribute-driven component (only component)
   utils/
     event-attrs.ts        # setEventQueryFromAttr() + parseAttrValue() (exported, tested)
     event-attrs.test.ts   # bun:test — parser type coercion
-    event-format.ts       # date/time/day/price helpers (dayjs + utc/timezone) + filterExcludedTopics()
-    query-params.ts       # setQueryParam / setQueryParams
+    event-format.ts       # date/time/price helpers — uses GLOBAL dayjs (not imported) + filterExcludedTopics()
   types/
-    global.d.ts           # EDIT: window.Alpine, window.startAlpine
+    global.d.ts           # EDIT: window.Alpine, window.startAlpine, window.dayjs (+ global dayjs)
     alpine.ts             # AlpineComponent<T> ThisType helper for typing `this`
 bin/build.js              # EDIT: add './src/alpine.ts' to entry list
 tsconfig.json             # EDIT: add $api, $stores, $constants path aliases
-package.json              # EDIT: add alpinejs, @types/alpinejs, dayjs, @easepick/core, @easepick/range-plugin
+package.json              # EDIT: add alpinejs, @types/alpinejs, dayjs  (no EasePick)
 ```
 
 ---
@@ -192,44 +221,56 @@ package.json              # EDIT: add alpinejs, @types/alpinejs, dayjs, @easepic
 // Returns events array, [] for empty, null on network/HTTP error (logged).
 export async function fetchEvents(params: QueryParams): Promise<APIResponse[] | null>;
 
-// utils/event-attrs.ts
-export function setEventQueryFromAttr(el: HTMLElement, component: { apiBody: QueryParams }): void;
+// utils/event-attrs.ts  (parseAttrValue: coercion-by-shape; see §6 ceiling note)
+export function setEventQueryFromAttr(el: HTMLElement, component: { baseParams: QueryParams }): void;
 export function parseAttrValue(value: string): number | boolean | string | Array<string | number> | Date;
 
-// utils/event-format.ts  (dayjs + utc/timezone/advancedFormat plugins, DEFAULT_TIMEZONE)
+// utils/event-format.ts  — uses the GLOBAL `dayjs` (initialised once in entry.ts, NOT imported here),
+//                          so esbuild keeps it external and it isn't duplicated into this bundle.
 export function isMultiDayEvent(event: APIResponse): boolean;
 export function getEventDateRange(event: APIResponse): string;           // "Aug 12 (Mon, Tue)" / "Aug 12 - Aug 15 (...)" / "On demand"
 export function getTimeRange(start: string | null, end?: string | null, includeTimeZone?: boolean): string; // "9:00 AM - 5:00 PM (GMT)"
-export function getDays(events: APIResponse[]): string;                  // "Weekly (Mon, Tue)"
-export function getTimings(events: APIResponse[]): string;               // "Mornings/Afternoons"
-export function getTestsList(events: APIResponse[]): string;             // "SAT, ACT"
 export function getPriceSummary(events: APIResponse[]): string;          // "£X" or "£X - £Y" (per-group cost note, CSV #6)
 export function filterExcludedTopics(el: HTMLElement, events: APIResponse[]): APIResponse[];
+// Deferred (port only when a page renders them): getDays() "Weekly (Mon, Tue)",
+// getTimings() "Mornings/Afternoons", getTestsList() "SAT, ACT" — no Phase-1 page uses these.
 
-// stores/filters.ts
+// stores/filters.ts  — ONE behavioral store (no filterForm component). Owns state + behaviour + URL ops.
 export type FilterLocation = 'online' | 'in-person' | 'both';
 export interface FiltersStore {
   tests: string[]; location: FilterLocation;
   dateAfter: string | null; dateBefore: string | null;
   extendedTime: boolean; daysOfWeek: string[]; proctored: boolean;
-  reset(): void;
+  init(): void;                  // hydrate from URL once, then Alpine.effect(() => syncUrl(this))
+  toggleTest(test: string): void;
+  toggleDay(day: string): void;
+  reset(): void;                 // zero all fields IN PLACE — never window.location.reload()
+  // internal: syncUrl() via setQueryParams; getQueryParam/setQueryParams live here (ported subset,
+  // were utils/query-params.ts — folded in as this is the only consumer).
 }
 export const FILTERS_STORE = 'filters';
 export function registerFiltersStore(): void;     // window.Alpine.store(FILTERS_STORE, …)
 export function getFiltersStore(): FiltersStore;   // window.Alpine.store(FILTERS_STORE)
-
-// utils/query-params.ts  (ported subset)
-export function setQueryParam(param: string, value: string | null | undefined, pushHistory?: boolean): void;
-export function setQueryParams(records: { param: string; value: string | null | undefined }[], pushHistory?: boolean): void;
+// applyFilters lives on eventList (below) and READS this store → Partial<QueryParams>.
 ```
 
-**`eventList` behaviour:**
-- `init()`: `setEventQueryFromAttr(this.$root, this)`. If `data-use-filters` → `Alpine.effect(() => { applyFilters(getFiltersStore()); $nextTick(reload) })`; else `reload()`.
-- `reload()`: reset `start=0`, `events=[]`, `depleted=false`, query, toggle `isLoading`.
-- `query()`: `fetchEvents(apiBody)`; on `null` → `isError`; filter excluded topics; dedupe against shown; if `< limit` → `depleted`; push; set `isEmpty`.
-- `viewMore()`: bump `start += limit`, query (append).
-- `applyFilters(f)`: tests→`topics` (via `TEST_TOPIC_IDS`), location→`is_online` (`both`=undefined), `dateAfter`/`dateBefore` strings→`after`/`before` via dayjs in `DEFAULT_TIMEZONE` (+ set `timezone` param), ET→`extended_time_available`, days→`days_of_week`, proctored→`proctored`.
-- `get groups()`: bucket `events` by `location_name ?? (starts_at ? 'Online' : 'Online (On Demand)')`; in-person first; each `{ name, events, priceSummary }`.
+**`eventList` behaviour (query body is DERIVED, not mutated):**
+- Holds `baseParams: QueryParams` (set once at init) + the page enum `status` + `depleted`/`moreLoading`.
+- `init()`: `setEventQueryFromAttr(this.$root, this)` → fills `baseParams`. If `data-use-filters` →
+  `Alpine.effect(() => { readFiltersStore(); debouncedReload() })` (effect tracks the store; ~200ms
+  trailing debounce so a two-input date range / rapid toggles = one fetch). Else `reload()` once.
+- `reload()`: `start = 0`, `events = []`, `depleted = false`, `status = 'loading'`, then `query()`.
+- `query()`: build `apiBody = { ...baseParams, ...applyFilters(getFiltersStore()), start, limit }`;
+  `fetchEvents(apiBody)`; on `null` → `status = 'error'`; else filter excluded topics, dedupe
+  against shown, push; `status = events.length ? 'ready' : 'empty'`; if returned `< limit` → `depleted`.
+- `viewMore()`: `moreLoading = true`, bump `start += limit`, `query()` (append), `moreLoading = false`.
+- `applyFilters(f): Partial<QueryParams>` — **pure mapper, no mutation.** tests→`topics` (via
+  `TEST_TOPIC_IDS`), location→`is_online` (`both` → omit key entirely), `dateAfter`/`dateBefore`
+  strings→`after`/`before` via the global dayjs in `DEFAULT_TIMEZONE` (+ `timezone`), ET→
+  `extended_time_available`, days→`days_of_week`, proctored→`proctored`. A cleared filter is simply
+  absent from the returned partial — no stale keys (see §3.7).
+- `get groups()`: bucket `events` by `location_name ?? (starts_at ? 'Online' : 'Online (On Demand)')`;
+  in-person first; each `{ name, events, priceSummary }`.
 
 ---
 
@@ -248,7 +289,7 @@ window.startAlpine = (components) =>
 ```html
 <script>
   window.Webflow ||= [];
-  window.Webflow.push(() => window.startAlpine(['event-list', 'filter-form']));
+  window.Webflow.push(() => window.startAlpine(['event-list']));
 </script>
 ```
 
@@ -270,12 +311,18 @@ then starts (guarded on `DOMContentLoaded`).
 - Audience filter for live events (students/schools/all)? (CSV #1)
 - On-demand test links + location images for Practice Tests page. (CSV #6)
 
+**Known edge (build only if it bites):** rapid filter changes can let an earlier `fetchEvents`
+resolve *after* a later one and overwrite fresh results. The ~200ms re-query debounce (§8) shrinks
+the window; the full fix is an `AbortController` per list (thread a `signal` through `fetchEvents`)
+to cancel the in-flight request before issuing the next. Not built in Phase 1.
+
 ---
 
 ## 11. Implementation principles (keep it lean)
 
 - **YAGNI / surgical:** build only Phase 1 scope. Don't port Summit features no GWG page uses yet.
-- **Native first, with two deliberate exceptions:** dayjs (timezone-correct API round-trip) and EasePick (single-input date range) are required deps — see §2. Otherwise no new dependency for a few lines.
+- **Native first, with one deliberate exception:** dayjs (timezone-correct API round-trip) is the only required non-native dep — see §2. The date range uses two native `<input type="date">` (no picker lib). Otherwise no new dependency for a few lines.
+- **dayjs is a single global** initialised once in `entry.ts` (`window.dayjs`); date/format modules use the global, never `import dayjs` — esbuild multi-entry has no code splitting, so a per-component import would ship the library more than once.
 - **One endpoint, one function.** No abstract base classes for a single API.
 - **Mark deliberate shortcuts** with `// ponytail:` comments (e.g. placeholder slug, naive `depleted` heuristic).
 - **Type the boundary:** API request/response strictly typed; component internals via `AlpineComponent<T>`.
@@ -292,8 +339,10 @@ then starts (guarded on `DOMContentLoaded`).
    `eventList` element with `query-*` attrs + an `x-for` template, footer-call
    `window.startAlpine(['event-list'])` → events render live from the API. Toggle
    `setScriptMode('cdn')` to confirm fallback.
-5. **Filters:** wire `filterForm` + a `data-use-filters` `eventList` → changing a filter re-queries
-   and updates the list; URL reflects filter state; reload restores filters from URL.
-6. **Edge states (CSV #10):** kill network → `isError`; query with no matches → `isEmpty`; paginate to end → `depleted`.
+5. **Filters:** bind a Webflow filter UI directly to `$store.filters` + a `data-use-filters`
+   `eventList` → changing a filter re-queries (once, debounced) and updates the list; URL reflects
+   filter state; reload restores filters from URL; `reset()` clears in place (no page reload).
+6. **Edge states (CSV #10):** kill network → `status==='error'`; query with no matches →
+   `status==='empty'`; paginate to end → `depleted`. Confirm exactly one state block shows.
 
 > Note: steps 4–6 need the real `API_BASE` slug + topic IDs (section 10). Steps 1–3 do not.
