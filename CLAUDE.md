@@ -92,6 +92,12 @@ Current branch is `dev`; do feature work off `dev`, PR into `main`.
 - **Webflow bridge is mandatory** (`src/alpine.ts`, ported from Summit `alpineWebflow.ts`): Webflow
   can't author `<template>` elements or `.` in attribute names, so we rewrite `x-bind:foo`→`.` syntax
   and wrap bare `x-for`/`x-if` in `<template>` before start.
+  - **Never hand-author `<template>` tags in Webflow.** The Designer doesn't render `<template>`
+    content in preview/canvas — an author who wrapped an element in one would be editing invisible
+    markup. Instead, put `x-for`/`x-if` directly on the real, visible element in the Designer; the
+    `wrapInTemplate()` helper in `alpine.ts` (via `webflowBridge()`) moves that element into an actual
+    `<template>` in JS at runtime, before `Alpine.start()`. This keeps the element visible/editable in
+    Webflow's live preview while still behaving correctly once Alpine boots.
 - **One API function:** `fetchEvents(params)` in `src/api/events.ts`. No class hierarchy.
 - **One generic component:** `eventList` covers every events feed; behaviour is set by `query-*`
   (API params) and `data-*` (display) attributes read off `this.$root`. See the **attribute contract**

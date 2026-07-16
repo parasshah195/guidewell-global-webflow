@@ -35,7 +35,7 @@ with auto-fallback to CDN (see `src/entry.ts`, `src/dev/env.ts`, `bin/build.js`)
 | `src/utils/setEventQueryFromAttr.ts` + `arrayCheck.ts` | The `query-*` attribute → API-param parser. This is the core of attribute-driven config. |
 | `src/utils/getDateTime.ts` + `isMultiDayEvent.ts` | Date/time range, day/timing/test summaries, multi-day check. |
 | `src/utils/queryParamOps.ts` | URL query get/set (filters ↔ shareable URLs). |
-| `src/utils/alpineWebflow.ts` | The Webflow↔Alpine bridge (`:`→`.` rewrite, `<template>` wrapping). Required — Webflow can't author `<template>` or `.` in attribute names. |
+| `src/utils/alpineWebflow.ts` | The Webflow↔Alpine bridge (`:`→`.` rewrite, `<template>` wrapping). Required — Webflow can't author `<template>` or `.` in attribute names. **Authors never hand-place a `<template>` tag** — Webflow's Designer doesn't render `<template>` content in preview, so it'd be invisible/unstyleable in the canvas. Instead `x-for`/`x-if` go straight on the real element for live preview, and the bridge wraps it into a real `<template>` in JS before `Alpine.start()`. |
 | Store-driven reactivity | One shared filter store; multiple lists react to it. Keep this pattern. |
 
 ### Keep these Summit dependencies (required)
@@ -307,8 +307,20 @@ then starts (guarded on `DOMContentLoaded`).
   (same `/api/{project}/public/v2` pattern as Summit, `gwg` slug).
 - `TEST_TOPIC_IDS` — OneCanoe topic IDs per test (SAT/ACT/AP/PSAT). **Empty until GWG provides.**
 
-**To confirm with GWG/OneCanoe (do not block foundation work):**
-- Does the API return `proctored`, `extended_time_available`, and full (inc-VAT) price, or ex-VAT only? (CSV #6)
+**Confirmed against the live API (2026-07-16, unfiltered `GET /events` sample):**
+- No `proctored` field is returned at all — proctored-ness shows up as a `'Proctored'` string in
+  the `tags` array instead. The `proctored` *request* filter param is untested (may still work
+  server-side even though it's absent from responses) — don't build any UI that reads
+  `event.proctored` for display; there's nothing there.
+- `extended_time_available` reliably comes back as a real boolean (not missing).
+- `price` is a single string (e.g. `"687.50"`) or `null` — no separate ex-VAT/inc-VAT fields. Can't
+  tell from the field alone whether it's inclusive or exclusive; still worth asking GWG.
+- Response `type` values are `'class' | 'marketing_event' | 'practice_test_event'` — note
+  `practice_test_event`, not `'practice_test'` (that string is only valid for the *request*
+  `category` filter; see `EventType` vs `QueryParamsCategories` in `api/types.ts`).
+
+**Still to confirm with GWG/OneCanoe (do not block foundation work):**
+- Is `price` inc-VAT or ex-VAT?
 - Audience filter for live events (students/schools/all)? (CSV #1)
 - On-demand test links + location images for Practice Tests page. (CSV #6)
 
@@ -337,9 +349,10 @@ to cancel the in-flight request before issuing the next. Not built in Phase 1.
 2. `bun test` → `parseAttrValue` coercion asserts pass (number/date/bool/array/string).
 3. `bun run build` → `dist/prod/` contains `entry.js`, `alpine.js`, `components/*.js` with no esbuild errors.
 4. **On a GWG staging page:** `entry.js` in `<head>`, run `window.setScriptMode('local')`, add an
-   `eventList` element with `query-*` attrs + an `x-for` template, footer-call
-   `window.startAlpine(['event-list'])` → events render live from the API. Toggle
-   `setScriptMode('cdn')` to confirm fallback.
+   `eventList` element with `query-*` attrs and `x-for` placed directly on the (visible, editable)
+   repeated element — **not** wrapped in a hand-authored `<template>`; the Webflow bridge does that at
+   runtime (see §2, §3.4) — footer-call `window.startAlpine(['event-list'])` → events render live from
+   the API. Toggle `setScriptMode('cdn')` to confirm fallback.
 5. **Filters:** bind a Webflow filter UI directly to `$store.filters` + a `data-use-filters`
    `eventList` → changing a filter re-queries (once, debounced) and updates the list; URL reflects
    filter state; reload restores filters from URL; `reset()` clears in place (no page reload).

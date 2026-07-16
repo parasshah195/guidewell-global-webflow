@@ -136,6 +136,8 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 ## Open questions (track, don't block)
 - [x] GWG OneCanoe path slug — confirmed (see §10 above).
 - [ ] Per-test topic IDs (`TEST_TOPIC_IDS`).
-- [ ] API returns `proctored` / `extended_time_available` / inc-VAT price? (CSV #6)
+- [x] API returns `proctored` / `extended_time_available`? Confirmed live (2026-07-16): no
+      `proctored` field at all (conveyed via a `'Proctored'` tag instead); `extended_time_available`
+      is a real boolean. `price` is inc/ex-VAT still unconfirmed. (CSV #6)
 - [ ] Audience filter for live events (students/schools/all)? (CSV #1)
 - [ ] On-demand test links + location images for Practice Tests. (CSV #6)
