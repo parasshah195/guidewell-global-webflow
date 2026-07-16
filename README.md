@@ -115,3 +115,113 @@ The project will process and output the files mentioned in the `files` const of 
 - To manually purge a tagged version's files, wait for 10 minutes after the new release tag is added [[info discussion link](https://github.com/jsdelivr/jsdelivr/issues/18376#issuecomment-1047040896)]
 
 [**JSDelivr CDN Purge URL**](https://www.jsdelivr.com/tools/purge)
+
+## OneCanoe Events integration
+
+On top of the starter above, this repo layers Alpine.js components — configured entirely through
+HTML attributes — that surface the OneCanoe Events API on GWG pages. Full spec/rationale lives in
+[`docs/PRD.md`](docs/PRD.md); this section is the quick reference for Webflow authors wiring up a page.
+
+### Loading components on a page
+
+Each page loads only the components it uses via `window.startAlpine`, in a footer embed
+(inside `Webflow.push` so the DOM is ready):
+
+```html
+<script>
+  window.Webflow ||= [];
+  window.Webflow.push(() => window.startAlpine(['event-list']));
+</script>
+```
+
+Component bundles load first (so their `alpine:init` listeners are registered), then `alpine.js`
+loads last and calls `Alpine.start()`. Pass every component name the page uses, e.g.
+`window.startAlpine(['event-list', 'event-code-search'])`.
+
+### `eventList` — the one events component
+
+Covers every events feed (Home, Practice Tests, Group Classes, Webinars, Events page). Put these
+attributes on the element carrying `x-data="eventList"` (its root — read via `this.$root`, no
+`x-ref` needed):
+
+**`query-*`** — API parameters, type-coerced by shape (number/date/bool/array/string). Any
+`QueryParams` key from `src/api/types.ts`, prefixed `query-`:
+
+| Attribute | Example | Maps to |
+|---|---|---|
+| `query-category` | `['marketing_event']` | `category` |
+| `query-topics` | `[134, 49]` | `topics` (test IDs) |
+| `query-limit` | `12` | `limit` |
+| `query-is_online` | `true` | `is_online` |
+| `query-location_id` | `5` | `location_id` |
+| `query-before` / `query-after` | `2026-09-01` | date range |
+| `query-event_code` | `EVT83DD6` | `event_code` |
+| `query-tags` | `['SAT Prep']` | `tags` |
+
+**`data-*`** — display config:
+
+| Attribute | Values | Effect |
+|---|---|---|
+| `data-group-by` | `location` \| (absent) | `location`: exposes `groups` (in-person first, then Online, then Online (On Demand)), each with a `priceSummary`. Absent: flat `events` list. |
+| `data-use-filters` | present / absent | Subscribes to the `filters` store; re-queries (debounced) on change. |
+| `data-topics-exclude` | `SAT,ACT` | Drops events whose topics intersect this list. |
+
+Template state: `events`, `groups`, `status` (`'loading' | 'error' | 'empty' | 'ready'` — bind
+exactly one block per value, e.g. `x-show="status === 'error'"`), plus `depleted` / `moreLoading`
+(apply only while `ready`). Helpers: `dateRange(event)`, `timeRange(start, end)`, `viewMore()`.
+
+```html
+<div x-data="eventList" query-category="['marketing_event']" query-limit="12" data-use-filters>
+  <template x-if="status === 'loading'"><div>Loading…</div></template>
+  <template x-if="status === 'error'"><div>Something went wrong.</div></template>
+  <template x-if="status === 'empty'"><div>No events found.</div></template>
+  <template x-for="event in events" :key="event.id">
+    <div>
+      <span x-text="event.name"></span>
+      <span x-text="dateRange(event)"></span>
+    </div>
+  </template>
+  <button x-show="status === 'ready' && !depleted" x-bind:disabled="moreLoading" @click="viewMore()">
+    View more
+  </button>
+</div>
+```
+
+### Filter UI — bind directly to the `filters` store
+
+There's no separate filter-form component; Webflow filter controls bind straight to the
+behavioral `filters` store (`src/stores/filters.ts`):
+
+```html
+<input type="checkbox" @change="$store.filters.toggleTest('SAT')">
+<select x-model="$store.filters.location">
+  <option value="both">All</option>
+  <option value="online">Online</option>
+  <option value="in-person">In-person</option>
+</select>
+<input type="date" x-model="$store.filters.dateAfter">
+<input type="date" x-model="$store.filters.dateBefore" x-bind:min="$store.filters.dateAfter">
+<button @click="$store.filters.reset()">Reset</button>
+```
+
+The store hydrates from the URL once on load, then mirrors changes back to the URL (shareable/
+bookmarkable filters). Any `eventList` with `data-use-filters` re-queries automatically.
+
+### `eventCodeSearch` — find event by code
+
+Redirects to the matching event's page, or exposes `isError` for a Webflow-authored error message:
+
+```html
+<div x-data="eventCodeSearch">
+  <input type="text" x-model="eventCode">
+  <button x-bind:disabled="isLoading" @click="search()">Find</button>
+  <span x-show="isError">No event found for that code.</span>
+</div>
+```
+
+### Config
+
+`src/constants.ts` is the single config surface: `API_BASE` (OneCanoe path slug),
+`DEFAULT_EVENT_LIMIT`, `DEFAULT_TIMEZONE`, and `TEST_TOPIC_IDS` (per-test topic IDs used by the
+filter store's `tests` → `topics` mapping). `API_BASE` and `TEST_TOPIC_IDS` are placeholders until
+confirmed by GWG/OneCanoe (see PRD §10) — everything else is wired around them.

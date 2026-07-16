@@ -126,7 +126,7 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 - [ ] Fetch adapter (public Sheets API) mapping rows → `APIResponse`-like shape → reuse `eventList` rendering.
 
 ### Handover (CSV #11)
-- [ ] README: document the `query-*` / `data-*` attribute contract + `startAlpine` per-page pattern + config.
+- [x] README: document the `query-*` / `data-*` attribute contract + `startAlpine` per-page pattern + config.
 
 ---
 
