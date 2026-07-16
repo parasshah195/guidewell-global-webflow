@@ -141,8 +141,9 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
       working server-side filter — verified directly against the live API (exact counts, respects
       `limit`/`start`). `applyFilters()` sends it as a real request param, not a client-side filter
       (client-side would break controlled result counts for pagination). `extended_time_available`
-      is a real boolean. `price` is likely ex-VAT (Luke's Mock Tests script applies `*1.2`
-      client-side) but not 100% confirmed. (CSV #6)
+      is a real boolean. `price` is confirmed ex-VAT (2026-07-16) — UK VAT is a flat 20%
+      (`VAT_MULTIPLIER = 1.2`); `fetchEvents` now rewrites `price` to VAT-inclusive at the API
+      boundary since the frontend always shows inc-VAT pricing. (CSV #6)
 - [ ] Audience filter for live events (students/schools/all)? (CSV #1)
 - [ ] On-demand test links (hardcoded `on_demand=<id>` URLs, not in the events API — see PRD §10)
       + location images for Practice Tests. (CSV #6)

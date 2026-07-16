@@ -2,8 +2,18 @@
  * Date/time/price formatting for events. Uses the GLOBAL `dayjs` (initialised once in entry.ts) —
  * never `import dayjs` here, so esbuild's multi-entry build doesn't duplicate the library (PRD §3.5).
  */
-import { DEFAULT_TIMEZONE, PROCTORED_TAG } from '$constants';
+import { DEFAULT_TIMEZONE, PROCTORED_TAG, VAT_MULTIPLIER } from '$constants';
 import type { APIResponse } from '$api/types';
+
+/**
+ * API `price` is ex-VAT; the frontend always shows VAT-inclusive pricing (PRD §10), so this is
+ * applied once at the API boundary (`fetchEvents`) and every consumer of `event.price` gets the
+ * inc-VAT figure for free. Non-numeric prices (`null`, empty) pass through unchanged.
+ */
+export function applyVAT(price: string): string {
+  const value = parseFloat(price);
+  return isNaN(value) ? price : (value * VAT_MULTIPLIER).toFixed(2);
+}
 
 export function isProctored(event: APIResponse): boolean {
   return event.tags.includes(PROCTORED_TAG);

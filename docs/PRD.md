@@ -231,7 +231,8 @@ export function parseAttrValue(value: string): number | boolean | string | Array
 export function isMultiDayEvent(event: APIResponse): boolean;
 export function getEventDateRange(event: APIResponse): string;           // "Aug 12 (Mon, Tue)" / "Aug 12 - Aug 15 (...)" / "On demand"
 export function getTimeRange(start: string | null, end?: string | null, includeTimeZone?: boolean): string; // "9:00 AM - 5:00 PM (GMT)"
-export function getPriceSummary(events: APIResponse[]): string;          // "£X" or "£X - £Y" (per-group cost note, CSV #6)
+export function getPriceSummary(events: APIResponse[]): string;          // "£X" or "£X - £Y" (per-group cost note, CSV #6) — VAT-inclusive, `event.price` is already rewritten by `applyVAT()`
+export function applyVAT(price: string): string;                         // ex-VAT string -> VAT-inclusive string (`* VAT_MULTIPLIER`); non-numeric passes through unchanged
 export function filterExcludedTopics(el: HTMLElement, events: APIResponse[]): APIResponse[];
 // Deferred (port only when a page renders them): getDays() "Weekly (Mon, Tue)",
 // getTimings() "Mornings/Afternoons", getTestsList() "SAT, ACT" — no Phase-1 page uses these.
@@ -322,10 +323,13 @@ then starts (guarded on `DOMContentLoaded`).
   `eventList.isProctored(event)` still exists as a per-event display helper (e.g. a badge), just not
   for filtering.
 - `extended_time_available` reliably comes back as a real boolean (not missing).
-- `price` is a single string (e.g. `"687.50"`) or `null` — no separate ex-VAT/inc-VAT fields.
-  Luke's Mock Tests page computes inc-VAT display client-side as `price * 1.2` (UK 20% VAT),
-  treating `null`/`0` as "Free" — strongly implies `price` is ex-VAT, but not yet applied to
-  `getPriceSummary()` here (not requested yet — flag if the Practice Tests page needs it).
+- `price` is a single string (e.g. `"687.50"`) or `null` — no separate ex-VAT/inc-VAT fields, and
+  the raw API value is always ex-VAT. **Confirmed (2026-07-16):** UK VAT is a flat 20%
+  (`VAT_MULTIPLIER = 1.2` in `constants.ts`), and the frontend always shows VAT-inclusive pricing.
+  `fetchEvents()` (`api/events.ts`) applies `applyVAT()` (`utils/event-format.ts`) to `price` on
+  every event as it comes back from the API, so `event.price` and `getPriceSummary()` are already
+  VAT-inclusive everywhere downstream — no separate ex/inc-VAT field or client-side `*1.2`. Treat
+  `null`/`0`/non-numeric as "Free" (`applyVAT` passes non-numeric prices through unchanged).
 - Response `type` values are `'class' | 'marketing_event' | 'practice_test_event'` — note
   `practice_test_event`, not `'practice_test'` (that string is only valid for the *request*
   `category` filter; see `EventType` vs `QueryParamsCategories` in `api/types.ts`).
@@ -334,7 +338,6 @@ then starts (guarded on `DOMContentLoaded`).
   Not built here yet; page-specific work if/when the Practice Tests page needs it.
 
 **Still to confirm with GWG/OneCanoe (do not block foundation work):**
-- Is `price` inc-VAT or ex-VAT? (strong signal it's ex-VAT, see above — not yet 100% confirmed)
 - Audience filter for live events (students/schools/all)? (CSV #1)
 - Location images for Practice Tests page. (CSV #6)
 
