@@ -98,7 +98,10 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 - [x] `bun test` green.
 
 ### 10. Live verification (needs real API_BASE slug + topic IDs — PRD §10, §12 steps 4–6)
-- [ ] Fill `API_BASE` slug + `TEST_TOPIC_IDS` from GWG.
+- [x] Fill `API_BASE` slug from GWG. Confirmed by Ashley Rose (2026-07-16):
+      `https://guidewelleducation.onecanoe.com/api/gwg/public/v2` (matches Summit's
+      `/api/{project}/public/v2` pattern, `gwg` in place of `summit`).
+- [ ] Fill `TEST_TOPIC_IDS` from GWG — still empty placeholders.
 - [ ] On GWG staging: `setScriptMode('local')`, place an `eventList` + `x-for` template → events render.
 - [ ] Bind a filter UI to `$store.filters` + a `data-use-filters` list → filtering re-queries (once,
       debounced); URL syncs; reload restores; `reset()` clears in place (no page reload).
@@ -131,7 +134,8 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 ---
 
 ## Open questions (track, don't block)
-- [ ] GWG OneCanoe path slug + per-test topic IDs.
+- [x] GWG OneCanoe path slug — confirmed (see §10 above).
+- [ ] Per-test topic IDs (`TEST_TOPIC_IDS`).
 - [ ] API returns `proctored` / `extended_time_available` / inc-VAT price? (CSV #6)
 - [ ] Audience filter for live events (students/schools/all)? (CSV #1)
 - [ ] On-demand test links + location images for Practice Tests. (CSV #6)

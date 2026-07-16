@@ -303,7 +303,8 @@ then starts (guarded on `DOMContentLoaded`).
 ## 10. Config & open items
 
 `src/constants.ts` is the only file needing real values before go-live:
-- `API_BASE` — GWG path slug (same host as Summit, GWG-specific slug). **Placeholder until confirmed.**
+- `API_BASE` — **Confirmed** by Ashley Rose (2026-07-16): `https://guidewelleducation.onecanoe.com/api/gwg/public/v2`
+  (same `/api/{project}/public/v2` pattern as Summit, `gwg` slug).
 - `TEST_TOPIC_IDS` — OneCanoe topic IDs per test (SAT/ACT/AP/PSAT). **Empty until GWG provides.**
 
 **To confirm with GWG/OneCanoe (do not block foundation work):**
@@ -345,4 +346,5 @@ to cancel the in-flight request before issuing the next. Not built in Phase 1.
 6. **Edge states (CSV #10):** kill network → `status==='error'`; query with no matches →
    `status==='empty'`; paginate to end → `depleted`. Confirm exactly one state block shows.
 
-> Note: steps 4–6 need the real `API_BASE` slug + topic IDs (section 10). Steps 1–3 do not.
+> Note: `API_BASE` is now confirmed (§10), so step 4 (basic list rendering) just needs a GWG staging
+> page to test on. Step 5's test-filter toggles still need `TEST_TOPIC_IDS`. Steps 1–3 need neither.

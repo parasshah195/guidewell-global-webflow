@@ -1,5 +1,5 @@
-// ponytail: placeholder slug, confirm with GWG/OneCanoe before go-live (PRD §10)
-export const API_BASE = 'https://guidewelleducation.onecanoe.com/api/v1';
+// Confirmed by Ashley Rose (2026-07-16): GWG's OneCanoe events live at /api/gwg/public/v2/events.
+export const API_BASE = 'https://guidewelleducation.onecanoe.com/api/gwg/public/v2';
 
 export const DEFAULT_EVENT_LIMIT = 12;
 export const DEFAULT_TIMEZONE = 'Europe/London';
