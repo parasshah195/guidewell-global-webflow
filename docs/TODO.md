@@ -110,8 +110,13 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 ## Roadmap (later phases — NOT Phase 1)
 
 ### Phase 2 — Search & event-code (CSV #1, #5)
-- [ ] `components/event-code-search.ts`: input → `fetchEvents({ event_code })` → redirect to `event_page_url`.
+- [x] `components/event-code-search.ts`: input → `fetchEvents({ event_code })` → redirect to `event_page_url`.
+      `eventCodeSearch` component: `eventCode`/`isLoading`/`isError` state + `search()`. No
+      per-field IX2 error-animation trigger (Summit's `event-code-find.ts` had one via `$refs`) —
+      YAGNI until a GWG page's Webflow markup needs it; `isError` is enough to bind a message.
 - [ ] Search Results page: `eventList` instances (Group Classes, Practice Tests, Webinars) beside native search.
+      No new component needed — reuse `eventList` with page-specific `query-*` attrs (per PRD §4).
+      Blocked on GWG confirming which pages/queries; not foundation work.
 
 ### Phase 3 — Campaign Landing registration (CSV #4) — confirm need first
 - [ ] `components/event-registration.ts`: select events → POST to OneCanoe → redirect to Thank You.
