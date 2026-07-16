@@ -7,6 +7,10 @@ export type APIResponseData = {
 
 export type QueryParamsCategories = 'practice_test' | 'marketing_event' | 'class' | 'all';
 
+// Confirmed against the live GWG API (2026-07-16): the `category` filter takes 'practice_test',
+// but the response `type` field comes back as 'practice_test_event' — different vocabularies.
+export type EventType = 'practice_test_event' | 'marketing_event' | 'class';
+
 export type DaysOfWeek = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
 
 export type QueryParams = {
@@ -54,7 +58,7 @@ export const QueryParamsProperties: (keyof QueryParams)[] = [
 export interface APIResponse {
   id: number;
   name: string;
-  type: QueryParamsCategories;
+  type: EventType;
   description: string;
   event_code: string;
   is_online: boolean;
