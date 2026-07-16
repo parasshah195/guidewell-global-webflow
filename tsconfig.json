@@ -7,7 +7,10 @@
     "paths": {
       "$utils/*": ["src/utils/*"],
       "$types/*": ["src/types/*"],
-      "$dev/*": ["src/dev/*"]
+      "$dev/*": ["src/dev/*"],
+      "$api/*": ["src/api/*"],
+      "$stores/*": ["src/stores/*"],
+      "$constants": ["src/constants.ts"]
     }
   }
 }

@@ -11,8 +11,8 @@ const BUILD_DIRECTORY = !production ? DEV_BUILD_PATH : PROD_BUILD_PATH;
 const files = [
   './src/entry.ts',
   './src/global.ts',
+  './src/alpine.ts',
   './src/components/**/*.ts',
-  './src/pages/**/*.ts',
 ];
 
 const buildSettings = {
