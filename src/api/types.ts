@@ -31,7 +31,6 @@ export type QueryParams = {
   extended_time_available?: boolean;
   days_of_week?: Array<string>;
   location_id?: number;
-  proctored?: boolean;
 };
 
 export const QueryParamsProperties: (keyof QueryParams)[] = [
@@ -52,7 +51,6 @@ export const QueryParamsProperties: (keyof QueryParams)[] = [
   'extended_time_available',
   'days_of_week',
   'location_id',
-  'proctored',
 ];
 
 export interface APIResponse {
@@ -84,6 +82,5 @@ export interface APIResponse {
   location_name: string | null;
   google_maps_url: string;
   extended_time_available: boolean | null;
-  proctored?: boolean | null;
   event_page_url: string;
 }

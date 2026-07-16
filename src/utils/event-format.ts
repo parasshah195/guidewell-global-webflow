@@ -2,8 +2,12 @@
  * Date/time/price formatting for events. Uses the GLOBAL `dayjs` (initialised once in entry.ts) —
  * never `import dayjs` here, so esbuild's multi-entry build doesn't duplicate the library (PRD §3.5).
  */
-import { DEFAULT_TIMEZONE } from '$constants';
+import { DEFAULT_TIMEZONE, PROCTORED_TAG } from '$constants';
 import type { APIResponse } from '$api/types';
+
+export function isProctored(event: APIResponse): boolean {
+  return event.tags.includes(PROCTORED_TAG);
+}
 
 export function isMultiDayEvent(event: APIResponse): boolean {
   if (event.type !== 'class' || !event.class_schedule) return false;

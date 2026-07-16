@@ -9,7 +9,13 @@ import { DEFAULT_TIMEZONE, TEST_TOPIC_IDS } from '$constants';
 import type { FiltersStore } from '$stores/filters';
 import { getFiltersStore } from '$stores/filters';
 import type { AlpineComponent } from '$types/alpine';
-import { filterExcludedTopics, getEventDateRange, getPriceSummary, getTimeRange } from '$utils/event-format';
+import {
+  filterExcludedTopics,
+  getEventDateRange,
+  getPriceSummary,
+  getTimeRange,
+  isProctored,
+} from '$utils/event-format';
 import { setEventQueryFromAttr } from '$utils/event-attrs';
 
 type Status = 'loading' | 'error' | 'empty' | 'ready';
@@ -35,6 +41,7 @@ interface EventListState {
   groups: EventGroup[];
   dateRange(event: APIResponse): string;
   timeRange(start: string | null, end?: string | null): string;
+  isProctored(event: APIResponse): boolean;
 }
 
 window.addEventListener('alpine:init', () => {
@@ -74,9 +81,10 @@ window.addEventListener('alpine:init', () => {
 
       async query() {
         const limit = this.baseParams.limit ?? 12;
+        const filters = getFiltersStore();
         const apiBody: QueryParams = {
           ...this.baseParams,
-          ...this.applyFilters(getFiltersStore()),
+          ...this.applyFilters(filters),
           start: this.start,
           limit,
         };
@@ -88,7 +96,11 @@ window.addEventListener('alpine:init', () => {
           return;
         }
 
-        const filtered = filterExcludedTopics(this.$root, results);
+        // proctored has no API request param — the API only conveys it via a 'Proctored' tag on
+        // each event, so filtering happens client-side here rather than in applyFilters().
+        let filtered = filterExcludedTopics(this.$root, results);
+        if (filters.proctored) filtered = filtered.filter(isProctored);
+
         const existingIds = new Set(this.events.map((e) => e.id));
         const fresh = filtered.filter((e) => !existingIds.has(e.id));
 
@@ -130,9 +142,7 @@ window.addEventListener('alpine:init', () => {
         if (f.daysOfWeek.length) {
           params.days_of_week = f.daysOfWeek;
         }
-        if (f.proctored) {
-          params.proctored = true;
-        }
+        // proctored is filtered client-side in query() — no API request param exists for it.
 
         return params;
       },
@@ -164,6 +174,10 @@ window.addEventListener('alpine:init', () => {
 
       timeRange(start, end) {
         return getTimeRange(start, end);
+      },
+
+      isProctored(event) {
+        return isProctored(event);
       },
     } as AlpineComponent<EventListState>;
   });

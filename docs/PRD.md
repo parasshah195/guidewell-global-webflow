@@ -158,7 +158,8 @@ number (`12`), date (`2026-07-01`), boolean (`true`/`false`), array (`['SAT','AC
 `status: 'loading' | 'error' | 'empty' | 'ready'` (exactly one full-screen UI block shows — bind
 `x-show="status === 'error'"` etc.; no contradictory/limbo combos), plus the orthogonal sub-flags
 `depleted` and `moreLoading` (apply only while `ready`). Helpers: `dateRange(event)`,
-`timeRange(start, end)`, `viewMore()`.
+`timeRange(start, end)`, `isProctored(event)` (reads the `'Proctored'` tag — for a per-event badge;
+see §10), `viewMore()`.
 
 ### Filter UI bindings (Webflow → `filters` store)
 There is **no `filterForm` component** — the Webflow filter controls bind **directly** to the
@@ -308,21 +309,29 @@ then starts (guarded on `DOMContentLoaded`).
 - `TEST_TOPIC_IDS` — OneCanoe topic IDs per test (SAT/ACT/AP/PSAT). **Empty until GWG provides.**
 
 **Confirmed against the live API (2026-07-16, unfiltered `GET /events` sample):**
-- No `proctored` field is returned at all — proctored-ness shows up as a `'Proctored'` string in
-  the `tags` array instead. The `proctored` *request* filter param is untested (may still work
-  server-side even though it's absent from responses) — don't build any UI that reads
-  `event.proctored` for display; there's nothing there.
+- No `proctored` field or request filter param exists at all — confirmed by Ashley Rose/Luke
+  Anthony (GWG team, Jun–Jul 2026 thread): proctored-ness is conveyed by a `'Proctored'` string in
+  the `tags` array; absence of the tag means non-proctored. Luke's own reference implementation
+  (a vanilla-JS Mock Tests page script) confirms this by fetching all events unfiltered and
+  matching `tags.includes('Proctored')` client-side rather than sending any request param. Our
+  `filters.proctored` toggle now filters client-side the same way — see `isProctored()` in
+  `utils/event-format.ts`, applied in `eventList.query()` (§8).
 - `extended_time_available` reliably comes back as a real boolean (not missing).
-- `price` is a single string (e.g. `"687.50"`) or `null` — no separate ex-VAT/inc-VAT fields. Can't
-  tell from the field alone whether it's inclusive or exclusive; still worth asking GWG.
+- `price` is a single string (e.g. `"687.50"`) or `null` — no separate ex-VAT/inc-VAT fields.
+  Luke's Mock Tests page computes inc-VAT display client-side as `price * 1.2` (UK 20% VAT),
+  treating `null`/`0` as "Free" — strongly implies `price` is ex-VAT, but not yet applied to
+  `getPriceSummary()` here (not requested yet — flag if the Practice Tests page needs it).
 - Response `type` values are `'class' | 'marketing_event' | 'practice_test_event'` — note
   `practice_test_event`, not `'practice_test'` (that string is only valid for the *request*
   `category` filter; see `EventType` vs `QueryParamsCategories` in `api/types.ts`).
+- On-demand practice tests aren't part of the events API at all — GWG's Mock Tests page hardcodes
+  a small list of `{ name, topic, url }` with `on_demand=<id>` query params on the registration URL.
+  Not built here yet; page-specific work if/when the Practice Tests page needs it.
 
 **Still to confirm with GWG/OneCanoe (do not block foundation work):**
-- Is `price` inc-VAT or ex-VAT?
+- Is `price` inc-VAT or ex-VAT? (strong signal it's ex-VAT, see above — not yet 100% confirmed)
 - Audience filter for live events (students/schools/all)? (CSV #1)
-- On-demand test links + location images for Practice Tests page. (CSV #6)
+- Location images for Practice Tests page. (CSV #6)
 
 **Known edge (build only if it bites):** rapid filter changes can let an earlier `fetchEvents`
 resolve *after* a later one and overwrite fresh results. The ~200ms re-query debounce (§8) shrinks

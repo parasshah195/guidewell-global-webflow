@@ -168,7 +168,10 @@ attributes on the element carrying `x-data="eventList"` (its root — read via `
 
 Template state: `events`, `groups`, `status` (`'loading' | 'error' | 'empty' | 'ready'` — bind
 exactly one block per value, e.g. `x-show="status === 'error'"`), plus `depleted` / `moreLoading`
-(apply only while `ready`). Helpers: `dateRange(event)`, `timeRange(start, end)`, `viewMore()`.
+(apply only while `ready`). Helpers: `dateRange(event)`, `timeRange(start, end)`,
+`isProctored(event)` (badge an event as proctored — reads its `'Proctored'` tag; there's no
+`proctored` field on the API), `viewMore()`. A `filters.proctored` toggle (below) filters the whole
+list client-side the same way.
 
 ```html
 <div x-data="eventList" query-category="['marketing_event']" query-limit="12" data-use-filters>
