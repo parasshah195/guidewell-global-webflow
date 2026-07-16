@@ -137,10 +137,12 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 - [x] GWG OneCanoe path slug — confirmed (see §10 above).
 - [ ] Per-test topic IDs (`TEST_TOPIC_IDS`).
 - [x] API returns `proctored` / `extended_time_available`? Confirmed live (2026-07-16) + by GWG
-      team (Ashley Rose/Luke Anthony): no `proctored` field or filter param — conveyed via a
-      `'Proctored'` tag instead, now implemented as a client-side filter (`isProctored()` in
-      `event-format.ts`). `extended_time_available` is a real boolean. `price` is likely ex-VAT
-      (Luke's Mock Tests script applies `*1.2` client-side) but not 100% confirmed. (CSV #6)
+      team (Ashley Rose/Luke Anthony): no `proctored` field, but `tags` (with `'Proctored'`) IS a
+      working server-side filter — verified directly against the live API (exact counts, respects
+      `limit`/`start`). `applyFilters()` sends it as a real request param, not a client-side filter
+      (client-side would break controlled result counts for pagination). `extended_time_available`
+      is a real boolean. `price` is likely ex-VAT (Luke's Mock Tests script applies `*1.2`
+      client-side) but not 100% confirmed. (CSV #6)
 - [ ] Audience filter for live events (students/schools/all)? (CSV #1)
 - [ ] On-demand test links (hardcoded `on_demand=<id>` URLs, not in the events API — see PRD §10)
       + location images for Practice Tests. (CSV #6)

@@ -5,7 +5,7 @@
  */
 import { fetchEvents } from '$api/events';
 import type { APIResponse, QueryParams } from '$api/types';
-import { DEFAULT_TIMEZONE, TEST_TOPIC_IDS } from '$constants';
+import { DEFAULT_TIMEZONE, PROCTORED_TAG, TEST_TOPIC_IDS } from '$constants';
 import type { FiltersStore } from '$stores/filters';
 import { getFiltersStore } from '$stores/filters';
 import type { AlpineComponent } from '$types/alpine';
@@ -81,10 +81,9 @@ window.addEventListener('alpine:init', () => {
 
       async query() {
         const limit = this.baseParams.limit ?? 12;
-        const filters = getFiltersStore();
         const apiBody: QueryParams = {
           ...this.baseParams,
-          ...this.applyFilters(filters),
+          ...this.applyFilters(getFiltersStore()),
           start: this.start,
           limit,
         };
@@ -96,11 +95,7 @@ window.addEventListener('alpine:init', () => {
           return;
         }
 
-        // proctored has no API request param — the API only conveys it via a 'Proctored' tag on
-        // each event, so filtering happens client-side here rather than in applyFilters().
-        let filtered = filterExcludedTopics(this.$root, results);
-        if (filters.proctored) filtered = filtered.filter(isProctored);
-
+        const filtered = filterExcludedTopics(this.$root, results);
         const existingIds = new Set(this.events.map((e) => e.id));
         const fresh = filtered.filter((e) => !existingIds.has(e.id));
 
@@ -142,7 +137,12 @@ window.addEventListener('alpine:init', () => {
         if (f.daysOfWeek.length) {
           params.days_of_week = f.daysOfWeek;
         }
-        // proctored is filtered client-side in query() — no API request param exists for it.
+        if (f.proctored) {
+          // 'tags' is confirmed server-side (returns exact matches, respects limit/start) — the
+          // API has no dedicated proctored field/param, so this is the only reliable way to filter
+          // without breaking pagination (fetch-all-then-filter can't guarantee a controlled count).
+          params.tags = [...(this.baseParams.tags ?? []), PROCTORED_TAG];
+        }
 
         return params;
       },

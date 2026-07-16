@@ -312,10 +312,15 @@ then starts (guarded on `DOMContentLoaded`).
 - No `proctored` field or request filter param exists at all — confirmed by Ashley Rose/Luke
   Anthony (GWG team, Jun–Jul 2026 thread): proctored-ness is conveyed by a `'Proctored'` string in
   the `tags` array; absence of the tag means non-proctored. Luke's own reference implementation
-  (a vanilla-JS Mock Tests page script) confirms this by fetching all events unfiltered and
-  matching `tags.includes('Proctored')` client-side rather than sending any request param. Our
-  `filters.proctored` toggle now filters client-side the same way — see `isProctored()` in
-  `utils/event-format.ts`, applied in `eventList.query()` (§8).
+  (a vanilla-JS Mock Tests page script) filters this client-side after fetching everything
+  unfiltered — but we tested the `tags` request param directly against the live API and confirmed
+  it **does** filter server-side correctly (exact-match counts on multiple tags, respects
+  `limit`/`start`; multiple tags in the array are OR'd). `filters.proctored` sends
+  `tags: [...baseParams.tags, 'Proctored']` in `applyFilters()` rather than filtering client-side —
+  fetch-then-filter can't guarantee a controlled result count for pagination/"load more" UI, so we
+  deliberately did **not** copy Luke's client-side approach. `isProctored()` in `event-format.ts` /
+  `eventList.isProctored(event)` still exists as a per-event display helper (e.g. a badge), just not
+  for filtering.
 - `extended_time_available` reliably comes back as a real boolean (not missing).
 - `price` is a single string (e.g. `"687.50"`) or `null` — no separate ex-VAT/inc-VAT fields.
   Luke's Mock Tests page computes inc-VAT display client-side as `price * 1.2` (UK 20% VAT),

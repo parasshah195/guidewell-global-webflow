@@ -170,8 +170,9 @@ Template state: `events`, `groups`, `status` (`'loading' | 'error' | 'empty' | '
 exactly one block per value, e.g. `x-show="status === 'error'"`), plus `depleted` / `moreLoading`
 (apply only while `ready`). Helpers: `dateRange(event)`, `timeRange(start, end)`,
 `isProctored(event)` (badge an event as proctored — reads its `'Proctored'` tag; there's no
-`proctored` field on the API), `viewMore()`. A `filters.proctored` toggle (below) filters the whole
-list client-side the same way.
+`proctored` field on the API), `viewMore()`. A `filters.proctored` toggle (below) sends
+`tags: ['Proctored']` as a real, server-side-filtered request param — confirmed the API filters
+`tags` correctly, so this doesn't fetch-then-filter (which would break pagination/"load more").
 
 ```html
 <div x-data="eventList" query-category="['marketing_event']" query-limit="12" data-use-filters>
