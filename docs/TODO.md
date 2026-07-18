@@ -87,21 +87,43 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 - **Verify:** `bun run build` compiles entry with new global types. ✅
 
 ### 8. Test  (PRD §11)
-- [x] `src/utils/event-attrs.test.ts` (`bun:test`): assert `parseAttrValue` →
-      `'12'`→`12`, `'2026-07-01'`→`Date`, `'true'/'false'`→bool, `"['SAT','ACT']"`→array,
-      `'marketing_event'`→string.
-- **Verify:** `bun test` passes. ✅
+- [x] `src/utils/event-attrs.test.ts` (`bun:test`): `parseAttrValue` shape coercion +
+      `Date.parse` ceiling; `arrayCheck` parse/fallback.
+- [x] `src/utils/event-format.test.ts` (`bun:test`): `applyVAT`, `getPriceSummary`,
+      `isProctored`, `isMultiDayEvent`, `getEventDateRange`, `getTimeRange`, and the two
+      transforms extracted from `eventList` — `buildQueryFromFilters` (topic-ID mapping,
+      location, dates, proctored tag) and `groupEventsByLocation` (bucketing/rank/price).
+- [x] dayjs global for tests: `src/dayjs-setup.ts` (shared with `entry.ts`) preloaded via
+      `bunfig.toml` so `window.dayjs` resolves in `bun test`.
+- **Verify:** `bun test` passes (21/21). ✅
+- **Gate:** `bun test` runs before build (`"build": "bun test && …"`) and before merge
+      (`.github/workflows/ci.yml`, `on: pull_request` + `push: dev`). ✅
+- **Production CI (planned — see PRD §13):** current gate is temporary (build is local,
+      `dist/prod/` committed, jsDelivr serves it). When the build moves into CI and pushes to a
+      custom CDN: gitignore `dist/prod/`; deploy job (`on: push: main`) runs one fail-fast
+      sequence `install → bun test → bun run build → push to CDN` (red test blocks deploy); PR
+      job runs `install → bun test → bun run build` as the required merge check; revert the
+      `build` script to plain esbuild (CI owns the gate). Tests are unchanged — only the gate's
+      location moves.
 
 ### 9. Build verification  (PRD §12 steps 1–3)
 - [x] `bun run dev` serves `localhost:3000/alpine.js` + `/components/*.js`.
 - [x] `bun run build` → clean `dist/prod/` with `entry.js`, `alpine.js`, `components/*.js`.
 - [x] `bun test` green.
 
+### 10a. Mock Tests (v2) page wiring — Webflow (2026-07-16)
+- [x] Phase 1 — filter form → `$store.filters`: reset, location radios (`x-model` + values `online`/`in-person`/`both`), ET toggle, proctored toggle, weekday checkboxes, two native `<input type="date">` replacing EasePick (bound to `dateAfter`/`dateBefore`), clear links.
+- [x] Phase 2 — card Component definitions rewired: `x-text` on name/date/time/price/location, `x-bind:href` on CTA, `x-show` on ET + proctored badges, view-more/moreLoading/depleted controls.
+- [x] Phase 3 — three list roots → `eventList` instances: in-person (`query-is_online="false"`, `data-group-by="location"`), online (`query-is_online="true"`), on-demand stripped to static. State ComponentInstances wrapped in `x-show` divs (`status === 'loading'`/`'empty'`/`'error'`/`'ready'`).
+- [x] Phase 4 — build gate: `bun run build` ✅ + `bun test` (3/3) ✅
+- [ ] **Live verify** (needs deploy + browser): events render, groups show per location, filter reactivity, state transitions, view-more. Deferred until the page goes live.
+- [ ] Wire test-filter CMS radios (DynamoList `testsRadioGroup`) — needs CMS field name for value binding; deferred.
+
 ### 10. Live verification (needs real API_BASE slug + topic IDs — PRD §10, §12 steps 4–6)
 - [x] Fill `API_BASE` slug from GWG. Confirmed by Ashley Rose (2026-07-16):
       `https://guidewelleducation.onecanoe.com/api/gwg/public/v2` (matches Summit's
       `/api/{project}/public/v2` pattern, `gwg` in place of `summit`).
-- [ ] Fill `TEST_TOPIC_IDS` from GWG — still empty placeholders.
+- [x] Fill `TEST_TOPIC_IDS` from GWG — confirmed 2026-07-16 (user-supplied). Full mapping in `src/constants.ts`.
 - [ ] On GWG staging: `setScriptMode('local')`, place an `eventList` + `x-for` template → events render.
 - [ ] Bind a filter UI to `$store.filters` + a `data-use-filters` list → filtering re-queries (once,
       debounced); URL syncs; reload restores; `reset()` clears in place (no page reload).
@@ -135,14 +157,15 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 
 ## Open questions (track, don't block)
 - [x] GWG OneCanoe path slug — confirmed (see §10 above).
-- [ ] Per-test topic IDs (`TEST_TOPIC_IDS`).
+- [x] Per-test topic IDs (`TEST_TOPIC_IDS`). Confirmed 2026-07-16.
 - [x] API returns `proctored` / `extended_time_available`? Confirmed live (2026-07-16) + by GWG
       team (Ashley Rose/Luke Anthony): no `proctored` field, but `tags` (with `'Proctored'`) IS a
       working server-side filter — verified directly against the live API (exact counts, respects
       `limit`/`start`). `applyFilters()` sends it as a real request param, not a client-side filter
       (client-side would break controlled result counts for pagination). `extended_time_available`
-      is a real boolean. `price` is likely ex-VAT (Luke's Mock Tests script applies `*1.2`
-      client-side) but not 100% confirmed. (CSV #6)
+      is a real boolean. `price` is confirmed ex-VAT (2026-07-16) — UK VAT is a flat 20%
+      (`VAT_MULTIPLIER = 1.2`); `fetchEvents` now rewrites `price` to VAT-inclusive at the API
+      boundary since the frontend always shows inc-VAT pricing. (CSV #6)
 - [ ] Audience filter for live events (students/schools/all)? (CSV #1)
 - [ ] On-demand test links (hardcoded `on_demand=<id>` URLs, not in the events API — see PRD §10)
       + location images for Practice Tests. (CSV #6)

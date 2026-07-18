@@ -5,26 +5,22 @@
  */
 import { fetchEvents } from '$api/events';
 import type { APIResponse, QueryParams } from '$api/types';
-import { DEFAULT_TIMEZONE, PROCTORED_TAG, TEST_TOPIC_IDS } from '$constants';
 import type { FiltersStore } from '$stores/filters';
 import { getFiltersStore } from '$stores/filters';
 import type { AlpineComponent } from '$types/alpine';
+import { setEventQueryFromAttr } from '$utils/event-attrs';
+import type { EventGroup } from '$utils/event-format';
 import {
+  buildQueryFromFilters,
   filterExcludedTopics,
   getEventDateRange,
   getPriceSummary,
   getTimeRange,
+  groupEventsByLocation,
   isProctored,
 } from '$utils/event-format';
-import { setEventQueryFromAttr } from '$utils/event-attrs';
 
 type Status = 'loading' | 'error' | 'empty' | 'ready';
-
-interface EventGroup {
-  name: string;
-  events: APIResponse[];
-  priceSummary: string;
-}
 
 interface EventListState {
   baseParams: QueryParams;
@@ -39,6 +35,10 @@ interface EventListState {
   viewMore(): void;
   applyFilters(f: FiltersStore): Partial<QueryParams>;
   groups: EventGroup[];
+  priceSummary: string;
+  getDays(events: APIResponse[]): string;
+  getTime(events: APIResponse[]): string;
+  getTests(events: APIResponse[]): string;
   dateRange(event: APIResponse): string;
   timeRange(start: string | null, end?: string | null): string;
   isProctored(event: APIResponse): boolean;
@@ -115,57 +115,28 @@ window.addEventListener('alpine:init', () => {
       },
 
       applyFilters(f) {
-        const params: Partial<QueryParams> = {};
-
-        if (f.tests.length) {
-          params.topics = f.tests.flatMap((t) => TEST_TOPIC_IDS[t] ?? []);
-        }
-        if (f.location !== 'both') {
-          params.is_online = f.location === 'online';
-        }
-        if (f.dateAfter) {
-          params.after = window.dayjs.tz(f.dateAfter, DEFAULT_TIMEZONE).toISOString();
-          params.timezone = DEFAULT_TIMEZONE;
-        }
-        if (f.dateBefore) {
-          params.before = window.dayjs.tz(f.dateBefore, DEFAULT_TIMEZONE).toISOString();
-          params.timezone = DEFAULT_TIMEZONE;
-        }
-        if (f.extendedTime) {
-          params.extended_time_available = true;
-        }
-        if (f.daysOfWeek.length) {
-          params.days_of_week = f.daysOfWeek;
-        }
-        if (f.proctored) {
-          // 'tags' is confirmed server-side (returns exact matches, respects limit/start) — the
-          // API has no dedicated proctored field/param, so this is the only reliable way to filter
-          // without breaking pagination (fetch-all-then-filter can't guarantee a controlled count).
-          params.tags = [...(this.baseParams.tags ?? []), PROCTORED_TAG];
-        }
-
-        return params;
+        return buildQueryFromFilters(f, this.baseParams);
       },
 
       get groups() {
         if (!('groupBy' in this.$root.dataset)) return [];
+        return groupEventsByLocation(this.events);
+      },
 
-        const buckets = new Map<string, APIResponse[]>();
-        for (const event of this.events) {
-          const name = event.location_name ?? (event.starts_at ? 'Online' : 'Online (On Demand)');
-          if (!buckets.has(name)) buckets.set(name, []);
-          buckets.get(name)?.push(event);
-        }
+      get priceSummary() {
+        return getPriceSummary(this.events);
+      },
 
-        const names = [...buckets.keys()].sort((a, b) => {
-          const rank = (n: string) => (n === 'Online' ? 1 : n === 'Online (On Demand)' ? 2 : 0);
-          return rank(a) - rank(b);
-        });
+      getDays(events) {
+        return [...new Set(events.flatMap((e) => e.days_of_week))].join(', ');
+      },
 
-        return names.map((name) => {
-          const events = buckets.get(name) ?? [];
-          return { name, events, priceSummary: getPriceSummary(events) };
-        });
+      getTime(events) {
+        return getTimeRange(events[0]?.starts_at ?? null, events[0]?.ends_at);
+      },
+
+      getTests(events) {
+        return [...new Set(events.flatMap((e) => e.topics))].join(', ');
       },
 
       dateRange(event) {

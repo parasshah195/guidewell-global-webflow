@@ -112,7 +112,7 @@ parts) and the error/empty states of #10.
 | CSV # | Deliverable | Phase 1 implementation |
 |---|---|---|
 | 1 | Events API across pages | `eventList` instances with different `query-*` attrs per page. |
-| 6 | Practice Tests page + filters | `eventList` with `data-group-by="location"` + `data-use-filters`; filter UI bound directly to the `filters` store (tests, location, date range via two native date inputs, ET, days, **proctored**); per-group cost note via `getPriceSummary`. |
+| 6 | Practice Tests page + filters | Mock Tests (v2) page uses **three separate `eventList` instances**: in-person (`query-is_online="false"` + `data-group-by="location"` → `groups` loop per location + `priceSummary`), online-live (`query-is_online="true"` → flat `events` loop), on-demand (static content — not independently queryable from the API). All with `data-use-filters`. Filter UI bound directly to the `filters` store (tests, location radios, date range via two native date inputs, ET, days, **proctored**). State shown via `x-show="status === '...'"` on wrapper divs around each ComponentInstance. |
 | 7 | Group Classes (SAT only) | `eventList` with `query-category="['class']"` + SAT `query-topics`. |
 | 8 | Webinars page | Two `eventList` instances: Featured (limit 3) + Upcoming (date-sorted). Tag images deferred. |
 | 10 | Testing / edge cases | `status` (`loading`/`error`/`empty`/`ready`) + `depleted`/`moreLoading` states on `eventList`. |
@@ -231,7 +231,8 @@ export function parseAttrValue(value: string): number | boolean | string | Array
 export function isMultiDayEvent(event: APIResponse): boolean;
 export function getEventDateRange(event: APIResponse): string;           // "Aug 12 (Mon, Tue)" / "Aug 12 - Aug 15 (...)" / "On demand"
 export function getTimeRange(start: string | null, end?: string | null, includeTimeZone?: boolean): string; // "9:00 AM - 5:00 PM (GMT)"
-export function getPriceSummary(events: APIResponse[]): string;          // "£X" or "£X - £Y" (per-group cost note, CSV #6)
+export function getPriceSummary(events: APIResponse[]): string;          // "£X" or "£X - £Y" (per-group cost note, CSV #6) — VAT-inclusive, `event.price` is already rewritten by `applyVAT()`
+export function applyVAT(price: string): string;                         // ex-VAT string -> VAT-inclusive string (`* VAT_MULTIPLIER`); non-numeric passes through unchanged
 export function filterExcludedTopics(el: HTMLElement, events: APIResponse[]): APIResponse[];
 // Deferred (port only when a page renders them): getDays() "Weekly (Mon, Tue)",
 // getTimings() "Mornings/Afternoons", getTestsList() "SAT, ACT" — no Phase-1 page uses these.
@@ -306,7 +307,7 @@ then starts (guarded on `DOMContentLoaded`).
 `src/constants.ts` is the only file needing real values before go-live:
 - `API_BASE` — **Confirmed** by Ashley Rose (2026-07-16): `https://guidewelleducation.onecanoe.com/api/gwg/public/v2`
   (same `/api/{project}/public/v2` pattern as Summit, `gwg` slug).
-- `TEST_TOPIC_IDS` — OneCanoe topic IDs per test (SAT/ACT/AP/PSAT). **Empty until GWG provides.**
+- `TEST_TOPIC_IDS` — **Confirmed 2026-07-16 (user-supplied):** full mapping of SAT, ACT, PSAT, SHSAT, EACT, EF Coaching, AP (all subjects + per-subject), SSAT (all levels), ISEE (all levels). Live in `src/constants.ts`.
 
 **Confirmed against the live API (2026-07-16, unfiltered `GET /events` sample):**
 - No `proctored` field or request filter param exists at all — confirmed by Ashley Rose/Luke
@@ -322,10 +323,13 @@ then starts (guarded on `DOMContentLoaded`).
   `eventList.isProctored(event)` still exists as a per-event display helper (e.g. a badge), just not
   for filtering.
 - `extended_time_available` reliably comes back as a real boolean (not missing).
-- `price` is a single string (e.g. `"687.50"`) or `null` — no separate ex-VAT/inc-VAT fields.
-  Luke's Mock Tests page computes inc-VAT display client-side as `price * 1.2` (UK 20% VAT),
-  treating `null`/`0` as "Free" — strongly implies `price` is ex-VAT, but not yet applied to
-  `getPriceSummary()` here (not requested yet — flag if the Practice Tests page needs it).
+- `price` is a single string (e.g. `"687.50"`) or `null` — no separate ex-VAT/inc-VAT fields, and
+  the raw API value is always ex-VAT. **Confirmed (2026-07-16):** UK VAT is a flat 20%
+  (`VAT_MULTIPLIER = 1.2` in `constants.ts`), and the frontend always shows VAT-inclusive pricing.
+  `fetchEvents()` (`api/events.ts`) applies `applyVAT()` (`utils/event-format.ts`) to `price` on
+  every event as it comes back from the API, so `event.price` and `getPriceSummary()` are already
+  VAT-inclusive everywhere downstream — no separate ex/inc-VAT field or client-side `*1.2`. Treat
+  `null`/`0`/non-numeric as "Free" (`applyVAT` passes non-numeric prices through unchanged).
 - Response `type` values are `'class' | 'marketing_event' | 'practice_test_event'` — note
   `practice_test_event`, not `'practice_test'` (that string is only valid for the *request*
   `category` filter; see `EventType` vs `QueryParamsCategories` in `api/types.ts`).
@@ -334,7 +338,6 @@ then starts (guarded on `DOMContentLoaded`).
   Not built here yet; page-specific work if/when the Practice Tests page needs it.
 
 **Still to confirm with GWG/OneCanoe (do not block foundation work):**
-- Is `price` inc-VAT or ex-VAT? (strong signal it's ex-VAT, see above — not yet 100% confirmed)
 - Audience filter for live events (students/schools/all)? (CSV #1)
 - Location images for Practice Tests page. (CSV #6)
 
@@ -375,3 +378,33 @@ to cancel the in-flight request before issuing the next. Not built in Phase 1.
 
 > Note: `API_BASE` is now confirmed (§10), so step 4 (basic list rendering) just needs a GWG staging
 > page to test on. Step 5's test-filter toggles still need `TEST_TOPIC_IDS`. Steps 1–3 need neither.
+
+---
+
+## 13. CI & test gate (current vs. production)
+
+Unit tests (`bun test`) gate two moments: **before a prod build** and **before merge**. How that
+gate is wired depends on where the build runs — and the build is moving.
+
+**Current (temporary) — build is local, `dist/prod/` is committed:**
+- `package.json` chains the gate into the local build: `"build": "bun test && …esbuild"`, so a red
+  suite aborts the build before it writes `dist/prod/`.
+- `.github/workflows/ci.yml` runs `bun test` on `pull_request` (the real pre-merge gate — a PR into
+  `main` runs it) and on `push: dev`. `tag-and-cdn-purge.yml` still tags + purges jsDelivr on push
+  to `main` and does **not** test (it serves the already-committed `dist/prod/`).
+- Enforce by making the `CI` check **required** on `main` in branch protection.
+
+**Production (planned) — CI builds and pushes to a custom CDN; `dist/prod/` NOT committed:**
+- Stop committing `dist/prod/` (gitignore it); CI produces it fresh each deploy. This removes the
+  "committed artifact can drift or bypass tests" problem entirely.
+- The deploy workflow (`on: push: main`) runs one fail-fast job: `install → bun test → bun run build
+  → push to CDN`. Because the steps are sequential, a red test stops the run **before** build or
+  deploy — a real block, not an after-the-fact report (which is all a post-merge run can be).
+- The PR workflow (`on: pull_request`) runs `install → bun test → bun run build` (add `build` so a PR
+  can't merge code that passes tests but doesn't bundle), kept as the required check that blocks the
+  merge itself.
+- Revert `package.json` `build` to plain esbuild (drop the `bun test &&` chain): once CI owns the
+  gate, one source of truth is cleaner. `"test": "bun test"` stays for local runs.
+
+The tests themselves are pipeline-agnostic — only the gate's *location* moves (from the `build`
+npm-script into explicit CI stages). See [`TODO.md`](./TODO.md) §8.

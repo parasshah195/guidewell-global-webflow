@@ -1,4 +1,5 @@
 import { API_BASE, DEFAULT_EVENT_LIMIT } from '$constants';
+import { applyVAT } from '$utils/event-format';
 import type { APIResponse, APIResponseData, QueryParams } from './types';
 
 /**
@@ -20,7 +21,7 @@ export async function fetchEvents(params: QueryParams): Promise<APIResponse[] | 
     }
 
     const json = (await res.json()) as APIResponseData;
-    return json.data ?? [];
+    return (json.data ?? []).map((event) => ({ ...event, price: applyVAT(event.price) }));
   } catch (err) {
     console.error('fetchEvents: network error', err);
     return null;

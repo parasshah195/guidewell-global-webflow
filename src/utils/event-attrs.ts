@@ -43,7 +43,7 @@ export function parseAttrValue(
   return arrayCheck(value);
 }
 
-function arrayCheck(value: string): string | Array<string | number> {
+export function arrayCheck(value: string): string | Array<string | number> {
   try {
     const parsed = JSON.parse(value.replace(/'([^']*)'/g, '"$1"'));
     return Array.isArray(parsed) ? parsed : value;

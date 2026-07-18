@@ -63,6 +63,7 @@ export interface APIResponse {
   test_date?: Date | null;
   starts_at: string | null;
   ends_at: string | null;
+  /** Ex-VAT as returned by the API; `fetchEvents` rewrites this to VAT-inclusive (PRD §10). */
   price: string;
   class_schedule?: null | {
     first_session: { starts_at: string; ends_at: string };
