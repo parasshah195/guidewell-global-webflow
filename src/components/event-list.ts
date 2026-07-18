@@ -39,6 +39,10 @@ interface EventListState {
   viewMore(): void;
   applyFilters(f: FiltersStore): Partial<QueryParams>;
   groups: EventGroup[];
+  priceSummary: string;
+  getDays(events: APIResponse[]): string;
+  getTime(events: APIResponse[]): string;
+  getTests(events: APIResponse[]): string;
   dateRange(event: APIResponse): string;
   timeRange(start: string | null, end?: string | null): string;
   isProctored(event: APIResponse): boolean;
@@ -166,6 +170,22 @@ window.addEventListener('alpine:init', () => {
           const events = buckets.get(name) ?? [];
           return { name, events, priceSummary: getPriceSummary(events) };
         });
+      },
+
+      get priceSummary() {
+        return getPriceSummary(this.events);
+      },
+
+      getDays(events) {
+        return [...new Set(events.flatMap((e) => e.days_of_week))].join(', ');
+      },
+
+      getTime(events) {
+        return getTimeRange(events[0]?.starts_at ?? null, events[0]?.ends_at);
+      },
+
+      getTests(events) {
+        return [...new Set(events.flatMap((e) => e.topics))].join(', ');
       },
 
       dateRange(event) {
