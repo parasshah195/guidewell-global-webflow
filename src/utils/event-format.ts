@@ -96,7 +96,9 @@ export function buildQueryFromFilters(
   if (f.tests.length) {
     params.topics = f.tests.flatMap((t) => TEST_TOPIC_IDS[t] ?? []);
   }
-  if (f.location !== 'both') {
+  // A module that fixes its own location (query-is_online) ignores the location filter —
+  // otherwise the radio would clobber a split in-person/online feed on the same page.
+  if (f.location !== 'both' && baseParams.is_online === undefined) {
     params.is_online = f.location === 'online';
   }
   if (f.dateAfter) {

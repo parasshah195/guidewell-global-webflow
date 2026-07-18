@@ -120,6 +120,11 @@ test('buildQueryFromFilters maps location → is_online', () => {
   expect(buildQueryFromFilters(filters({ location: 'in-person' }), {}).is_online).toBe(false);
 });
 
+test('buildQueryFromFilters lets a module with query-is_online ignore the location filter', () => {
+  expect('is_online' in buildQueryFromFilters(filters({ location: 'online' }), { is_online: false })).toBe(false);
+  expect('is_online' in buildQueryFromFilters(filters({ location: 'in-person' }), { is_online: true })).toBe(false);
+});
+
 test('buildQueryFromFilters maps the simple flags', () => {
   const p = buildQueryFromFilters(filters({ extendedTime: true, daysOfWeek: ['Mon', 'Wed'] }), {});
   expect(p.extended_time_available).toBe(true);
