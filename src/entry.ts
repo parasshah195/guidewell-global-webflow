@@ -1,17 +1,8 @@
-import dayjs from 'dayjs';
-import advancedFormat from 'dayjs/plugin/advancedFormat';
-import timezone from 'dayjs/plugin/timezone';
-import utc from 'dayjs/plugin/utc';
+import './dayjs-setup';
 
 import '$dev/debug';
 import '$dev/env';
 import { LOCAL_SERVER } from '$dev/env';
-
-// Single global dayjs instance — date modules use `window.dayjs`, never `import dayjs` (PRD §3.5)
-dayjs.extend(utc);
-dayjs.extend(timezone);
-dayjs.extend(advancedFormat);
-window.dayjs = dayjs;
 
 /**
  * Entry point for the build system.

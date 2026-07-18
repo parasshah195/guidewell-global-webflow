@@ -87,10 +87,24 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 - **Verify:** `bun run build` compiles entry with new global types. ✅
 
 ### 8. Test  (PRD §11)
-- [x] `src/utils/event-attrs.test.ts` (`bun:test`): assert `parseAttrValue` →
-      `'12'`→`12`, `'2026-07-01'`→`Date`, `'true'/'false'`→bool, `"['SAT','ACT']"`→array,
-      `'marketing_event'`→string.
-- **Verify:** `bun test` passes. ✅
+- [x] `src/utils/event-attrs.test.ts` (`bun:test`): `parseAttrValue` shape coercion +
+      `Date.parse` ceiling; `arrayCheck` parse/fallback.
+- [x] `src/utils/event-format.test.ts` (`bun:test`): `applyVAT`, `getPriceSummary`,
+      `isProctored`, `isMultiDayEvent`, `getEventDateRange`, `getTimeRange`, and the two
+      transforms extracted from `eventList` — `buildQueryFromFilters` (topic-ID mapping,
+      location, dates, proctored tag) and `groupEventsByLocation` (bucketing/rank/price).
+- [x] dayjs global for tests: `src/dayjs-setup.ts` (shared with `entry.ts`) preloaded via
+      `bunfig.toml` so `window.dayjs` resolves in `bun test`.
+- **Verify:** `bun test` passes (21/21). ✅
+- **Gate:** `bun test` runs before build (`"build": "bun test && …"`) and before merge
+      (`.github/workflows/ci.yml`, `on: pull_request` + `push: dev`). ✅
+- **Production CI (planned — see PRD §13):** current gate is temporary (build is local,
+      `dist/prod/` committed, jsDelivr serves it). When the build moves into CI and pushes to a
+      custom CDN: gitignore `dist/prod/`; deploy job (`on: push: main`) runs one fail-fast
+      sequence `install → bun test → bun run build → push to CDN` (red test blocks deploy); PR
+      job runs `install → bun test → bun run build` as the required merge check; revert the
+      `build` script to plain esbuild (CI owns the gate). Tests are unchanged — only the gate's
+      location moves.
 
 ### 9. Build verification  (PRD §12 steps 1–3)
 - [x] `bun run dev` serves `localhost:3000/alpine.js` + `/components/*.js`.

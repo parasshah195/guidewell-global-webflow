@@ -97,9 +97,27 @@ The project will process and output the files mentioned in the `files` const of 
 - Add any debug console logs in the code using the `console.debug` function instead of `console.log`. This way, they can be toggled on/off using the browser native "Verbose/Debug" level.
 - There is an optional debug mode setup for development that can execute conditional logic using `window.IS_DEBUG` check. Execute `window.setDebugMode(true)` in the browser console to enable the debug mode. Execute `window.setDebugMode(false)` to disable the mode.
 
+### Tests & CI
+
+Unit tests run on `bun test` (colocated `*.test.ts`, no extra config; `bunfig.toml` preloads the
+dayjs global). They gate two moments:
+
+- **Before build:** `bun run build` runs `bun test` first (`"build": "bun test && …"`) and aborts if
+  a test fails, so a red suite never produces `dist/prod/`.
+- **Before merge:** `.github/workflows/ci.yml` runs `bun test` on every PR (a PR into `main` runs it)
+  and on pushes to `dev`. Make the `CI` check **required** on `main` in branch protection so it
+  actually blocks the merge.
+
+> **Planned production CI (see [`docs/PRD.md`](docs/PRD.md) §13).** The current setup is temporary:
+> the build is local and `dist/prod/` is committed for jsDelivr to serve. When the build moves into
+> CI and pushes to a custom CDN, `dist/prod/` gets gitignored and the deploy job runs one fail-fast
+> sequence `install → bun test → bun run build → push to CDN` (a red test blocks the deploy). At that
+> point the `bun test &&` chain is dropped from the `build` script — CI becomes the single gate.
+
 ### Publishing the code to CDN
 
-1. Run `bun run build` to generate the production files in `./dist/prod` folder
+1. Run `bun run build` to generate the production files in `./dist/prod` folder (it runs `bun test`
+   first and stops on failure)
    - Alternatively, `pnpm run build` or `npm run build`
 
 2. To push code to production, merge the working branch into `main`. A Github Actions workflow will run tagging that version with an incremented [semver](https://semver.org/) tag. Once pushed, the production code will be auto loaded from [jsDelivr CDN](https://www.jsdelivr.com/).
