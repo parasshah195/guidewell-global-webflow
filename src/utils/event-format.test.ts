@@ -75,13 +75,21 @@ test('applyVAT passes non-numeric prices through unchanged', () => {
 
 test('getPriceSummary formats a single, a range, and empty', () => {
   expect(getPriceSummary([])).toBe('');
-  expect(getPriceSummary([evt({ price: '100' })])).toBe('£100');
-  expect(getPriceSummary([evt({ price: '100' }), evt({ price: '250' })])).toBe('£100 - £250');
+  expect(getPriceSummary([evt({ price: '100' })])).toBe('$100');
+  expect(getPriceSummary([evt({ price: '100' }), evt({ price: '250' })])).toBe('$100 - $250');
 });
 
 test('getPriceSummary ignores non-numeric prices', () => {
-  expect(getPriceSummary([evt({ price: 'n/a' }), evt({ price: '50' })])).toBe('£50');
+  expect(getPriceSummary([evt({ price: 'n/a' }), evt({ price: '50' })])).toBe('$50');
   expect(getPriceSummary([evt({ price: 'n/a' })])).toBe('');
+});
+
+test('getPriceSummary treats null/0 price as Free', () => {
+  expect(getPriceSummary([evt({ price: null as unknown as string })])).toBe('Free');
+  expect(getPriceSummary([evt({ price: '0' })])).toBe('Free');
+  expect(getPriceSummary([evt({ price: null as unknown as string }), evt({ price: '50' })])).toBe(
+    'Free - $50'
+  );
 });
 
 test('isProctored checks the Proctored tag', () => {
@@ -154,7 +162,7 @@ test('groupEventsByLocation attaches a per-group price summary', () => {
     evt({ location_name: 'London', price: '100' }),
     evt({ location_name: 'London', price: '250' }),
   ]);
-  expect(groups[0].priceSummary).toBe('£100 - £250');
+  expect(groups[0].priceSummary).toBe('$100 - $250');
 });
 
 test('getEventDateRange handles on-demand, single, multi-day + days suffix', () => {
