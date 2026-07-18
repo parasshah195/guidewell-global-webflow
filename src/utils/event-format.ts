@@ -2,8 +2,15 @@
  * Date/time/price formatting for events. Uses the GLOBAL `dayjs` (initialised once in entry.ts) —
  * never `import dayjs` here, so esbuild's multi-entry build doesn't duplicate the library (PRD §3.5).
  */
-import { DEFAULT_TIMEZONE, PROCTORED_TAG, VAT_MULTIPLIER } from '$constants';
-import type { APIResponse } from '$api/types';
+import { DEFAULT_TIMEZONE, PROCTORED_TAG, TEST_TOPIC_IDS, VAT_MULTIPLIER } from '$constants';
+import type { APIResponse, QueryParams } from '$api/types';
+import type { FiltersStore } from '$stores/filters';
+
+export interface EventGroup {
+  name: string;
+  events: APIResponse[];
+  priceSummary: string;
+}
 
 /**
  * API `price` is ex-VAT; the frontend always shows VAT-inclusive pricing (PRD §10), so this is
@@ -70,6 +77,69 @@ export function getPriceSummary(events: APIResponse[]): string {
   const max = Math.max(...prices);
 
   return min === max ? `£${min}` : `£${min} - £${max}`;
+}
+
+/**
+ * Maps the `filters` store state → API query params (PRD §8). Pure over `f` and `baseParams`
+ * (only external dep is the global `window.dayjs` for the date branches).
+ */
+export function buildQueryFromFilters(
+  f: FiltersStore,
+  baseParams: QueryParams
+): Partial<QueryParams> {
+  const params: Partial<QueryParams> = {};
+
+  if (f.tests.length) {
+    params.topics = f.tests.flatMap((t) => TEST_TOPIC_IDS[t] ?? []);
+  }
+  if (f.location !== 'both') {
+    params.is_online = f.location === 'online';
+  }
+  if (f.dateAfter) {
+    params.after = window.dayjs.tz(f.dateAfter, DEFAULT_TIMEZONE).toISOString();
+    params.timezone = DEFAULT_TIMEZONE;
+  }
+  if (f.dateBefore) {
+    params.before = window.dayjs.tz(f.dateBefore, DEFAULT_TIMEZONE).toISOString();
+    params.timezone = DEFAULT_TIMEZONE;
+  }
+  if (f.extendedTime) {
+    params.extended_time_available = true;
+  }
+  if (f.daysOfWeek.length) {
+    params.days_of_week = f.daysOfWeek;
+  }
+  if (f.proctored) {
+    // 'tags' is confirmed server-side (returns exact matches, respects limit/start) — the
+    // API has no dedicated proctored field/param, so this is the only reliable way to filter
+    // without breaking pagination (fetch-all-then-filter can't guarantee a controlled count).
+    params.tags = [...(baseParams.tags ?? []), PROCTORED_TAG];
+  }
+
+  return params;
+}
+
+/**
+ * Buckets events by `location_name` (CSV #6) with Online / Online (On Demand) fallbacks, ranks
+ * named venues first, and attaches a per-group price summary.
+ */
+export function groupEventsByLocation(events: APIResponse[]): EventGroup[] {
+  const buckets = new Map<string, APIResponse[]>();
+  for (const event of events) {
+    const name = event.location_name ?? (event.starts_at ? 'Online' : 'Online (On Demand)');
+    if (!buckets.has(name)) buckets.set(name, []);
+    buckets.get(name)?.push(event);
+  }
+
+  const names = [...buckets.keys()].sort((a, b) => {
+    const rank = (n: string) => (n === 'Online' ? 1 : n === 'Online (On Demand)' ? 2 : 0);
+    return rank(a) - rank(b);
+  });
+
+  return names.map((name) => {
+    const events = buckets.get(name) ?? [];
+    return { name, events, priceSummary: getPriceSummary(events) };
+  });
 }
 
 /**

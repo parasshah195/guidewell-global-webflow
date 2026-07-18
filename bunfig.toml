@@ -1,0 +1,3 @@
+[test]
+# date modules read the global `window.dayjs`; this sets it up before any test runs
+preload = ["./src/dayjs-setup.ts"]

@@ -378,3 +378,33 @@ to cancel the in-flight request before issuing the next. Not built in Phase 1.
 
 > Note: `API_BASE` is now confirmed (§10), so step 4 (basic list rendering) just needs a GWG staging
 > page to test on. Step 5's test-filter toggles still need `TEST_TOPIC_IDS`. Steps 1–3 need neither.
+
+---
+
+## 13. CI & test gate (current vs. production)
+
+Unit tests (`bun test`) gate two moments: **before a prod build** and **before merge**. How that
+gate is wired depends on where the build runs — and the build is moving.
+
+**Current (temporary) — build is local, `dist/prod/` is committed:**
+- `package.json` chains the gate into the local build: `"build": "bun test && …esbuild"`, so a red
+  suite aborts the build before it writes `dist/prod/`.
+- `.github/workflows/ci.yml` runs `bun test` on `pull_request` (the real pre-merge gate — a PR into
+  `main` runs it) and on `push: dev`. `tag-and-cdn-purge.yml` still tags + purges jsDelivr on push
+  to `main` and does **not** test (it serves the already-committed `dist/prod/`).
+- Enforce by making the `CI` check **required** on `main` in branch protection.
+
+**Production (planned) — CI builds and pushes to a custom CDN; `dist/prod/` NOT committed:**
+- Stop committing `dist/prod/` (gitignore it); CI produces it fresh each deploy. This removes the
+  "committed artifact can drift or bypass tests" problem entirely.
+- The deploy workflow (`on: push: main`) runs one fail-fast job: `install → bun test → bun run build
+  → push to CDN`. Because the steps are sequential, a red test stops the run **before** build or
+  deploy — a real block, not an after-the-fact report (which is all a post-merge run can be).
+- The PR workflow (`on: pull_request`) runs `install → bun test → bun run build` (add `build` so a PR
+  can't merge code that passes tests but doesn't bundle), kept as the required check that blocks the
+  merge itself.
+- Revert `package.json` `build` to plain esbuild (drop the `bun test &&` chain): once CI owns the
+  gate, one source of truth is cleaner. `"test": "bun test"` stays for local runs.
+
+The tests themselves are pipeline-agnostic — only the gate's *location* moves (from the `build`
+npm-script into explicit CI stages). See [`TODO.md`](./TODO.md) §8.

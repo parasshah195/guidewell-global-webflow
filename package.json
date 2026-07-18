@@ -9,7 +9,8 @@
   "author": "parasshah195",
   "scripts": {
     "dev": "cross-env NODE_ENV=development bun run ./bin/build.js",
-    "build": "cross-env NODE_ENV=production bun run ./bin/build.js"
+    "test": "bun test",
+    "build": "bun test && cross-env NODE_ENV=production bun run ./bin/build.js"
   },
   "devDependencies": {
     "@finsweet/eslint-config": "^2.0.7",
