@@ -61,8 +61,10 @@ window.addEventListener('alpine:init', () => {
 
         if ('useFilters' in this.$root.dataset) {
           window.Alpine.effect(() => {
-            // touch the store so Alpine tracks it, debounce so a date-range pair = one fetch
-            getFiltersStore();
+            // read every filter field so Alpine tracks them (getting the store proxy alone
+            // registers no dependency); debounce so a date-range pair = one fetch
+            const f = getFiltersStore();
+            void [f.tests, f.location, f.dateAfter, f.dateBefore, f.extendedTime, f.daysOfWeek, f.proctored];
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => this.reload(), 200);
           });
