@@ -6,7 +6,7 @@ export const ENV_NAMES: Record<SCRIPTS_ENV, string> = {
   cdn: 'CDN',
 };
 
-export const LOCAL_SERVER = 'http://localhost:3000';
+export const LOCAL_SERVER = 'http://localhost:3000/';
 const ENV_LOCALSTORAGE_ID = 'jsEnv';
 
 window.SCRIPTS_ENV = getENV();
