@@ -9,6 +9,7 @@ import { DEFAULT_TIMEZONE, PROCTORED_TAG, TEST_TOPIC_IDS } from '$constants';
 import type { FiltersStore } from '$stores/filters';
 import { getFiltersStore } from '$stores/filters';
 import type { AlpineComponent } from '$types/alpine';
+import { setEventQueryFromAttr } from '$utils/event-attrs';
 import {
   filterExcludedTopics,
   getEventDateRange,
@@ -16,7 +17,6 @@ import {
   getTimeRange,
   isProctored,
 } from '$utils/event-format';
-import { setEventQueryFromAttr } from '$utils/event-attrs';
 
 type Status = 'loading' | 'error' | 'empty' | 'ready';
 

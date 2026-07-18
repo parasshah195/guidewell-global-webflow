@@ -97,11 +97,19 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 - [x] `bun run build` → clean `dist/prod/` with `entry.js`, `alpine.js`, `components/*.js`.
 - [x] `bun test` green.
 
+### 10a. Mock Tests (v2) page wiring — Webflow (2026-07-16)
+- [x] Phase 1 — filter form → `$store.filters`: reset, location radios (`x-model` + values `online`/`in-person`/`both`), ET toggle, proctored toggle, weekday checkboxes, two native `<input type="date">` replacing EasePick (bound to `dateAfter`/`dateBefore`), clear links.
+- [x] Phase 2 — card Component definitions rewired: `x-text` on name/date/time/price/location, `x-bind:href` on CTA, `x-show` on ET + proctored badges, view-more/moreLoading/depleted controls.
+- [x] Phase 3 — three list roots → `eventList` instances: in-person (`query-is_online="false"`, `data-group-by="location"`), online (`query-is_online="true"`), on-demand stripped to static. State ComponentInstances wrapped in `x-show` divs (`status === 'loading'`/`'empty'`/`'error'`/`'ready'`).
+- [x] Phase 4 — build gate: `bun run build` ✅ + `bun test` (3/3) ✅
+- [ ] **Live verify** (needs deploy + browser): events render, groups show per location, filter reactivity, state transitions, view-more. Deferred until the page goes live.
+- [ ] Wire test-filter CMS radios (DynamoList `testsRadioGroup`) — needs CMS field name for value binding; deferred.
+
 ### 10. Live verification (needs real API_BASE slug + topic IDs — PRD §10, §12 steps 4–6)
 - [x] Fill `API_BASE` slug from GWG. Confirmed by Ashley Rose (2026-07-16):
       `https://guidewelleducation.onecanoe.com/api/gwg/public/v2` (matches Summit's
       `/api/{project}/public/v2` pattern, `gwg` in place of `summit`).
-- [ ] Fill `TEST_TOPIC_IDS` from GWG — still empty placeholders.
+- [x] Fill `TEST_TOPIC_IDS` from GWG — confirmed 2026-07-16 (user-supplied). Full mapping in `src/constants.ts`.
 - [ ] On GWG staging: `setScriptMode('local')`, place an `eventList` + `x-for` template → events render.
 - [ ] Bind a filter UI to `$store.filters` + a `data-use-filters` list → filtering re-queries (once,
       debounced); URL syncs; reload restores; `reset()` clears in place (no page reload).
@@ -135,7 +143,7 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 
 ## Open questions (track, don't block)
 - [x] GWG OneCanoe path slug — confirmed (see §10 above).
-- [ ] Per-test topic IDs (`TEST_TOPIC_IDS`).
+- [x] Per-test topic IDs (`TEST_TOPIC_IDS`). Confirmed 2026-07-16.
 - [x] API returns `proctored` / `extended_time_available`? Confirmed live (2026-07-16) + by GWG
       team (Ashley Rose/Luke Anthony): no `proctored` field, but `tags` (with `'Proctored'`) IS a
       working server-side filter — verified directly against the live API (exact counts, respects

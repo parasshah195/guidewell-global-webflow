@@ -112,7 +112,7 @@ parts) and the error/empty states of #10.
 | CSV # | Deliverable | Phase 1 implementation |
 |---|---|---|
 | 1 | Events API across pages | `eventList` instances with different `query-*` attrs per page. |
-| 6 | Practice Tests page + filters | `eventList` with `data-group-by="location"` + `data-use-filters`; filter UI bound directly to the `filters` store (tests, location, date range via two native date inputs, ET, days, **proctored**); per-group cost note via `getPriceSummary`. |
+| 6 | Practice Tests page + filters | Mock Tests (v2) page uses **three separate `eventList` instances**: in-person (`query-is_online="false"` + `data-group-by="location"` → `groups` loop per location + `priceSummary`), online-live (`query-is_online="true"` → flat `events` loop), on-demand (static content — not independently queryable from the API). All with `data-use-filters`. Filter UI bound directly to the `filters` store (tests, location radios, date range via two native date inputs, ET, days, **proctored**). State shown via `x-show="status === '...'"` on wrapper divs around each ComponentInstance. |
 | 7 | Group Classes (SAT only) | `eventList` with `query-category="['class']"` + SAT `query-topics`. |
 | 8 | Webinars page | Two `eventList` instances: Featured (limit 3) + Upcoming (date-sorted). Tag images deferred. |
 | 10 | Testing / edge cases | `status` (`loading`/`error`/`empty`/`ready`) + `depleted`/`moreLoading` states on `eventList`. |
@@ -307,7 +307,7 @@ then starts (guarded on `DOMContentLoaded`).
 `src/constants.ts` is the only file needing real values before go-live:
 - `API_BASE` — **Confirmed** by Ashley Rose (2026-07-16): `https://guidewelleducation.onecanoe.com/api/gwg/public/v2`
   (same `/api/{project}/public/v2` pattern as Summit, `gwg` slug).
-- `TEST_TOPIC_IDS` — OneCanoe topic IDs per test (SAT/ACT/AP/PSAT). **Empty until GWG provides.**
+- `TEST_TOPIC_IDS` — **Confirmed 2026-07-16 (user-supplied):** full mapping of SAT, ACT, PSAT, SHSAT, EACT, EF Coaching, AP (all subjects + per-subject), SSAT (all levels), ISEE (all levels). Live in `src/constants.ts`.
 
 **Confirmed against the live API (2026-07-16, unfiltered `GET /events` sample):**
 - No `proctored` field or request filter param exists at all — confirmed by Ashley Rose/Luke
