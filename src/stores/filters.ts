@@ -1,7 +1,7 @@
 export type FilterLocation = 'online' | 'in-person' | 'both';
 
 export interface FiltersStore {
-  tests: string[];
+  tests: string;
   location: FilterLocation;
   dateAfter: string | null;
   dateBefore: string | null;
@@ -9,14 +9,15 @@ export interface FiltersStore {
   daysOfWeek: string[];
   proctored: boolean;
   init(): void;
-  toggleTest(test: string): void;
-  toggleDay(day: string): void;
   reset(): void;
+  resetDays(): void;
 }
 
 export const FILTERS_STORE = 'filters';
 
-const QUERY_KEYS: Record<keyof Omit<FiltersStore, 'init' | 'toggleTest' | 'toggleDay' | 'reset'>, string> = {
+type FilterField = keyof Omit<FiltersStore, 'init' | 'reset'>;
+
+const QUERY_KEYS: Record<FilterField, string> = {
   tests: 'tests',
   location: 'location',
   dateAfter: 'after',
@@ -41,7 +42,7 @@ function setQueryParams(records: { param: string; value: string | null }[]): voi
 
 export function registerFiltersStore(): void {
   window.Alpine.store(FILTERS_STORE, {
-    tests: [],
+    tests: '',
     location: 'both',
     dateAfter: null,
     dateBefore: null,
@@ -50,50 +51,61 @@ export function registerFiltersStore(): void {
     proctored: false,
 
     init() {
-      const tests = getQueryParam(QUERY_KEYS.tests);
-      this.tests = tests ? tests.split(',') : [];
-      const location = getQueryParam(QUERY_KEYS.location);
-      this.location = (location as FilterLocation) || 'both';
-      this.dateAfter = getQueryParam(QUERY_KEYS.dateAfter) || null;
-      this.dateBefore = getQueryParam(QUERY_KEYS.dateBefore) || null;
-      this.extendedTime = getQueryParam(QUERY_KEYS.extendedTime) === 'true';
-      const days = getQueryParam(QUERY_KEYS.daysOfWeek);
-      this.daysOfWeek = days ? days.split(',') : [];
-      this.proctored = getQueryParam(QUERY_KEYS.proctored) === 'true';
+      // Precedence (increasing): store default (the literals above) < HTML `checked` on registered
+      // inputs < URL query param. Inputs opt in with `data-filter="<field>"`; type of the current
+      // default decides how each tier is parsed. Runs before Alpine renders the inputs' bindings.
+      const params = new URLSearchParams(window.location.search);
+
+      (Object.keys(QUERY_KEYS) as FilterField[]).forEach((field) => {
+        const key = QUERY_KEYS[field];
+        const inputs = [
+          ...document.querySelectorAll<HTMLInputElement>(`[data-filter="${field}"]`),
+        ];
+        const current = this[field];
+
+        if (Array.isArray(current)) {
+          if (inputs.length) this[field] = inputs.filter((i) => i.checked).map((i) => i.value) as never;
+          if (params.has(key)) this[field] = (getQueryParam(key) ? getQueryParam(key).split(',') : []) as never;
+        } else if (typeof current === 'boolean') {
+          if (inputs.length) this[field] = inputs[0].checked as never;
+          if (params.has(key)) this[field] = (getQueryParam(key) === 'true') as never;
+        } else {
+          // scalar (location, dateAfter/before): first checked input, then URL value
+          const picked = inputs.find((i) => i.checked)?.value;
+          if (picked) this[field] = picked as never;
+          if (params.has(key)) this[field] = (getQueryParam(key) || null) as never;
+        }
+      });
 
       window.Alpine.effect(() => {
         setQueryParams([
-          { param: QUERY_KEYS.tests, value: this.tests.join(',') || null },
+          { param: QUERY_KEYS.tests, value: this.tests || null },
           { param: QUERY_KEYS.location, value: this.location !== 'both' ? this.location : null },
           { param: QUERY_KEYS.dateAfter, value: this.dateAfter },
           { param: QUERY_KEYS.dateBefore, value: this.dateBefore },
           { param: QUERY_KEYS.extendedTime, value: this.extendedTime ? 'true' : null },
-          { param: QUERY_KEYS.daysOfWeek, value: this.daysOfWeek.join(',') || null },
+          // daysOfWeek is intentionally not URL-synced (HTML default only) — noisy in the query string
           { param: QUERY_KEYS.proctored, value: this.proctored ? 'true' : null },
         ]);
       });
     },
 
-    toggleTest(test: string) {
-      this.tests = this.tests.includes(test)
-        ? this.tests.filter((t) => t !== test)
-        : [...this.tests, test];
-    },
-
-    toggleDay(day: string) {
-      this.daysOfWeek = this.daysOfWeek.includes(day)
-        ? this.daysOfWeek.filter((d) => d !== day)
-        : [...this.daysOfWeek, day];
-    },
-
     reset() {
-      this.tests = [];
+      this.tests = '';
       this.location = 'both';
       this.dateAfter = null;
       this.dateBefore = null;
       this.extendedTime = false;
       this.daysOfWeek = [];
       this.proctored = false;
+    },
+
+    // Select every day — derives the full set from the rendered checkboxes so there's no day list
+    // duplicated in code (single source of truth is the Webflow markup).
+    resetDays() {
+      this.daysOfWeek = [
+        ...document.querySelectorAll<HTMLInputElement>('[data-filter="daysOfWeek"]'),
+      ].map((i) => i.value);
     },
   } as FiltersStore);
 }
