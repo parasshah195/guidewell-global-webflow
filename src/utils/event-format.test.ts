@@ -43,7 +43,7 @@ function evt(p: Partial<APIResponse> = {}): APIResponse {
 
 function filters(p: Partial<FiltersStore> = {}): FiltersStore {
   return {
-    tests: [],
+    tests: '',
     location: 'both',
     dateAfter: null,
     dateBefore: null,
@@ -51,9 +51,8 @@ function filters(p: Partial<FiltersStore> = {}): FiltersStore {
     daysOfWeek: [],
     proctored: false,
     init() {},
-    toggleTest() {},
-    toggleDay() {},
     reset() {},
+    resetDays() {},
     ...p,
   } as FiltersStore;
 }
@@ -109,9 +108,9 @@ test('isMultiDayEvent needs a class with >1 sessions', () => {
 });
 
 test('buildQueryFromFilters maps tests → topic IDs (unknown keys drop)', () => {
-  expect(buildQueryFromFilters(filters({ tests: ['SAT'] }), {}).topics).toEqual([1134]);
-  expect(buildQueryFromFilters(filters({ tests: ['SAT', 'ACT'] }), {}).topics).toEqual([1134, 1049]);
-  expect(buildQueryFromFilters(filters({ tests: ['NOPE'] }), {}).topics).toEqual([]);
+  expect(buildQueryFromFilters(filters({ tests: 'SAT' }), {}).topics).toEqual([1134]);
+  expect(buildQueryFromFilters(filters({ tests: 'ACT' }), {}).topics).toEqual([1049]);
+  expect(buildQueryFromFilters(filters({ tests: 'NOPE' }), {}).topics).toEqual([]);
 });
 
 test('buildQueryFromFilters maps location → is_online', () => {

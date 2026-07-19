@@ -93,8 +93,8 @@ export function buildQueryFromFilters(
 ): Partial<QueryParams> {
   const params: Partial<QueryParams> = {};
 
-  if (f.tests.length) {
-    params.topics = f.tests.flatMap((t) => TEST_TOPIC_IDS[t] ?? []);
+  if (f.tests) {
+    params.topics = TEST_TOPIC_IDS[f.tests] ?? [];
   }
   // A module that fixes its own location (query-is_online) ignores the location filter —
   // otherwise the radio would clobber a split in-person/online feed on the same page.
