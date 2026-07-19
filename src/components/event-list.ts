@@ -47,6 +47,7 @@ interface EventListState {
 window.addEventListener('alpine:init', () => {
   window.Alpine.data('eventList', function () {
     let debounceTimer: ReturnType<typeof setTimeout>;
+    let lastSig: string | null = null;
 
     return {
       baseParams: {},
@@ -64,7 +65,11 @@ window.addEventListener('alpine:init', () => {
             // read every filter field so Alpine tracks them (getting the store proxy alone
             // registers no dependency); debounce so a date-range pair = one fetch
             const f = getFiltersStore();
-            void [f.tests, f.location, f.dateAfter, f.dateBefore, f.extendedTime, f.daysOfWeek, f.proctored];
+            // Alpine tracks references, not values: reset() reassigns empty arrays, so guard on a
+            // value signature to skip no-op refetches (nothing actually changed)
+            const sig = JSON.stringify([f.tests, f.location, f.dateAfter, f.dateBefore, f.extendedTime, f.daysOfWeek, f.proctored]);
+            if (sig === lastSig) return;
+            lastSig = sig;
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => this.reload(), 200);
           });
