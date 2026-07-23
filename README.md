@@ -187,7 +187,7 @@ attributes on the element carrying `x-data="eventList"` (its root — read via `
 Template state: `events`, `groups`, `status` (`'loading' | 'error' | 'empty' | 'ready'` — bind
 exactly one block per value, e.g. `x-show="status === 'error'"`), plus `depleted` / `moreLoading`
 (apply only while `ready`). Helpers: `dateRange(event)`, `timeRange(start, end)`,
-`isProctored(event)` (badge an event as proctored — reads its `'Proctored'` tag; there's no
+`price(event)`, `isProctored(event)` (badge an event as proctored — reads its `'Proctored'` tag; there's no
 `proctored` field on the API), `viewMore()`. A `filters.proctored` toggle (below) sends
 `tags: ['Proctored']` as a real, server-side-filtered request param — confirmed the API filters
 `tags` correctly, so this doesn't fetch-then-filter (which would break pagination/"load more").
