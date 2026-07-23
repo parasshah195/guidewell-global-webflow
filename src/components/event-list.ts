@@ -36,6 +36,7 @@ interface EventListState {
   applyFilters(f: FiltersStore): Partial<QueryParams>;
   groups: EventGroup[];
   priceSummary: string;
+  price(event: APIResponse): string;
   getDays(events: APIResponse[]): string;
   getTime(events: APIResponse[]): string;
   getTests(events: APIResponse[]): string;
@@ -132,6 +133,10 @@ window.addEventListener('alpine:init', () => {
 
       get priceSummary() {
         return getPriceSummary(this.events);
+      },
+
+      price(event) {
+        return getPriceSummary(event);
       },
 
       getDays(events) {

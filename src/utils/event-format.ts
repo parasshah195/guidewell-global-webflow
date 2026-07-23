@@ -70,7 +70,15 @@ export function getTimeRange(
  * Per-group cost note (CSV #6). A null/absent `price` means free → 0. Renders "Free", "£X",
  * or a "min - max" range; a 0 endpoint reads "Free" (e.g. "Free - £50").
  */
-export function getPriceSummary(events: APIResponse[]): string {
+export function getPriceSummary(input: APIResponse | APIResponse[]): string {
+  const label = (p: number) => (p === 0 ? 'Free' : `£${p}`);
+
+  if (!Array.isArray(input)) {
+    const price = input.price == null ? 0 : parseFloat(input.price);
+    return isNaN(price) ? '' : label(price);
+  }
+
+  const events = input;
   const prices = events
     .map((e) => (e.price == null ? 0 : parseFloat(e.price)))
     .filter((p) => !isNaN(p));
@@ -78,7 +86,6 @@ export function getPriceSummary(events: APIResponse[]): string {
 
   const min = Math.min(...prices);
   const max = Math.max(...prices);
-  const label = (p: number) => (p === 0 ? 'Free' : `£${p}`);
 
   return min === max ? label(min) : `${label(min)} - ${label(max)}`;
 }

@@ -231,7 +231,7 @@ export function parseAttrValue(value: string): number | boolean | string | Array
 export function isMultiDayEvent(event: APIResponse): boolean;
 export function getEventDateRange(event: APIResponse): string;           // "Aug 12 (Mon, Tue)" / "Aug 12 - Aug 15 (...)" / "On demand"
 export function getTimeRange(start: string | null, end?: string | null, includeTimeZone?: boolean): string; // "9:00 AM - 5:00 PM (GMT)"
-export function getPriceSummary(events: APIResponse[]): string;          // "£X" or "£X - £Y" (per-group cost note, CSV #6) — VAT-inclusive, `event.price` is already rewritten by `applyVAT()`
+export function getPriceSummary(input: APIResponse | APIResponse[]): string; // event → "£X"; events → "£X - £Y" — VAT-inclusive
 export function applyVAT(price: string): string;                         // ex-VAT string -> VAT-inclusive string (`* VAT_MULTIPLIER`); non-numeric passes through unchanged
 export function filterExcludedTopics(el: HTMLElement, events: APIResponse[]): APIResponse[];
 // Deferred (port only when a page renders them): getDays() "Weekly (Mon, Tue)",

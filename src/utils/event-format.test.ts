@@ -72,7 +72,10 @@ test('applyVAT passes non-numeric prices through unchanged', () => {
   expect(applyVAT('n/a')).toBe('n/a');
 });
 
-test('getPriceSummary formats a single, a range, and empty', () => {
+test('getPriceSummary formats a single event, an event array, a range, and empty', () => {
+  expect(getPriceSummary(evt({ price: '100' }))).toBe('£100');
+  expect(getPriceSummary(evt({ price: null as unknown as string }))).toBe('Free');
+  expect(getPriceSummary(evt({ price: 'n/a' }))).toBe('');
   expect(getPriceSummary([])).toBe('');
   expect(getPriceSummary([evt({ price: '100' })])).toBe('£100');
   expect(getPriceSummary([evt({ price: '100' }), evt({ price: '250' })])).toBe('£100 - £250');

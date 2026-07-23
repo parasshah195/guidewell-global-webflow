@@ -40,7 +40,8 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 - [x] `src/utils/event-format.ts`: uses the **global `dayjs`** (initialised in `entry.ts` — do NOT
       `import dayjs` here, so esbuild keeps it external). Implement `isMultiDayEvent`,
       `getEventDateRange`, `getTimeRange`; add `getPriceSummary(events)` (£ min–max) and
-      `filterExcludedTopics(el, events)` (reads `data-topics-exclude`). All formatting in `DEFAULT_TIMEZONE`.
+      `filterExcludedTopics(el, events)` (reads `data-topics-exclude`). `getPriceSummary` also accepts
+      one event for card-level labels. All formatting in `DEFAULT_TIMEZONE`.
       **Skip** `getDays`/`getTimings`/`getTestsList` and the Summit `DateTimeRange` type +
       `startDateShort`/`WithWeekday`/etc. fields — port only when a page needs them.
 - [x] URL get/set: **no `utils/query-params.ts`** — folded `getQueryParam` + `setQueryParams` into
