@@ -11,12 +11,12 @@ In essence, it uses bun to start a development server on [localhost:3000](http:/
 ### Prerequisites
 
 - Have [bun](https://bun.sh/) installed locally. Installation guidelines [here](https://bun.sh/docs/installation) (recommended approach - homebrew / curl)
-   - Alternatively, `pnpm` or `npm` will work too.
+  - Alternatively, `pnpm` or `npm` will work too.
 
 ### Setup
 
 - Run `bun install`
-   - Alternatively, `pnpm install` or `npm install`
+  - Alternatively, `pnpm install` or `npm install`
 
 ## Usage
 
@@ -35,6 +35,7 @@ The project will process and output the files mentioned in the `files` const of 
    ```
 
    For occasional localhost testing when editing `entry.js`, you'll have to manually include that script like following:
+
    ```html
    <script src="http://localhost:3000/entry.js"></script>
    ```
@@ -44,6 +45,7 @@ The project will process and output the files mentioned in the `files` const of 
    You can load any script (relative to your repo or a full CDN URL) as a module using the global `window.loadScript` function. This is the recommended way to load scripts in this setup.
 
    **Usage:**
+
    ```js
    // Load a relative script (from CDN or localhost, depending on env)
    window.loadScript('global.js');
@@ -53,19 +55,19 @@ The project will process and output the files mentioned in the `files` const of 
      placement: 'head', // 'head' or 'body' (default: 'body')
      scriptName: 'some-lib', // Optional: emits a custom event 'scriptLoaded:some-lib' when loaded
      defer: true, // (default: true)
-     isModule: true // (default: true)
+     isModule: true, // (default: true)
    });
    ```
    - All scripts are loaded as ES modules by default.
    - The function deduplicates by URL (won't load the same script twice).
    - You can listen for a custom event when a script is loaded:
 
-      ```js
-      document.addEventListener('scriptLoaded:some-lib', (e) => {
-        // e.detail.url, e.detail.scriptName
-        // Your code here
-      });
-      ```
+     ```js
+     document.addEventListener('scriptLoaded:some-lib', (e) => {
+       // e.detail.url, e.detail.scriptName
+       // Your code here
+     });
+     ```
 
    - **Options:**
      - `placement`: `'head' | 'body'` (default: `'body'`)
@@ -88,7 +90,7 @@ The project will process and output the files mentioned in the `files` const of 
      ```js
      window.setScriptMode('cdn');
      ```
-   This preference is saved in the browser's localStorage. If the local server is not running, it will automatically fall back to CDN.
+     This preference is saved in the browser's localStorage. If the local server is not running, it will automatically fall back to CDN.
 
 5. As you make changes to your code locally and save, the [localhost:3000](http://localhost:3000) server will serve those files.
 
@@ -165,24 +167,24 @@ attributes on the element carrying `x-data="eventList"` (its root — read via `
 **`query-*`** — API parameters, type-coerced by shape (number/date/bool/array/string). Any
 `QueryParams` key from `src/api/types.ts`, prefixed `query-`:
 
-| Attribute | Example | Maps to |
-|---|---|---|
-| `query-category` | `['marketing_event']` | `category` |
-| `query-topics` | `[134, 49]` | `topics` (test IDs) |
-| `query-limit` | `12` | `limit` |
-| `query-is_online` | `true` | `is_online` |
-| `query-location_id` | `5` | `location_id` |
-| `query-before` / `query-after` | `2026-09-01` | date range |
-| `query-event_code` | `EVT83DD6` | `event_code` |
-| `query-tags` | `['SAT Prep']` | `tags` |
+| Attribute                      | Example               | Maps to             |
+| ------------------------------ | --------------------- | ------------------- |
+| `query-category`               | `['marketing_event']` | `category`          |
+| `query-topics`                 | `[134, 49]`           | `topics` (test IDs) |
+| `query-limit`                  | `12`                  | `limit`             |
+| `query-is_online`              | `true`                | `is_online`         |
+| `query-location_id`            | `5`                   | `location_id`       |
+| `query-before` / `query-after` | `2026-09-01`          | date range          |
+| `query-event_code`             | `EVT83DD6`            | `event_code`        |
+| `query-tags`                   | `['SAT Prep']`        | `tags`              |
 
 **`data-*`** — display config:
 
-| Attribute | Values | Effect |
-|---|---|---|
-| `data-group-by` | `location` \| (absent) | `location`: exposes `groups` (in-person first, then Online, then Online (On Demand)), each with a `priceSummary`. Absent: flat `events` list. |
-| `data-use-filters` | present / absent | Subscribes to the `filters` store; re-queries (debounced) on change. |
-| `data-topics-exclude` | `SAT,ACT` | Drops events whose topics intersect this list. |
+| Attribute             | Values                 | Effect                                                                                                                                        |
+| --------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-group-by`       | `location` \| (absent) | `location`: exposes `groups` (in-person first, then Online, then Online (On Demand)), each with a `priceSummary`. Absent: flat `events` list. |
+| `data-use-filters`    | present / absent       | Subscribes to the `filters` store; re-queries (debounced) on change.                                                                          |
+| `data-topics-exclude` | `SAT,ACT`              | Drops events whose topics intersect this list.                                                                                                |
 
 Template state: `events`, `groups`, `status` (`'loading' | 'error' | 'empty' | 'ready'` — bind
 exactly one block per value, e.g. `x-show="status === 'error'"`), plus `depleted` / `moreLoading`
@@ -203,7 +205,11 @@ exactly one block per value, e.g. `x-show="status === 'error'"`), plus `depleted
       <span x-text="dateRange(event)"></span>
     </div>
   </template>
-  <button x-show="status === 'ready' && !depleted" x-bind:disabled="moreLoading" @click="viewMore()">
+  <button
+    x-show="status === 'ready' && !depleted"
+    x-bind:disabled="moreLoading"
+    @click="viewMore()"
+  >
     View more
   </button>
 </div>
@@ -215,14 +221,14 @@ There's no separate filter-form component; Webflow filter controls bind straight
 behavioral `filters` store (`src/stores/filters.ts`):
 
 ```html
-<input type="checkbox" @change="$store.filters.toggleTest('SAT')">
+<input type="checkbox" @change="$store.filters.toggleTest('SAT')" />
 <select x-model="$store.filters.location">
   <option value="both">All</option>
   <option value="online">Online</option>
   <option value="in-person">In-person</option>
 </select>
-<input type="date" x-model="$store.filters.dateAfter">
-<input type="date" x-model="$store.filters.dateBefore" x-bind:min="$store.filters.dateAfter">
+<input type="date" x-model="$store.filters.dateAfter" />
+<input type="date" x-model="$store.filters.dateBefore" x-bind:min="$store.filters.dateAfter" />
 <button @click="$store.filters.reset()">Reset</button>
 ```
 
@@ -235,10 +241,62 @@ Redirects to the matching event's page, or exposes `isError` for a Webflow-autho
 
 ```html
 <div x-data="eventCodeSearch">
-  <input type="text" x-model="eventCode">
+  <input type="text" x-model="eventCode" />
   <button x-bind:disabled="isLoading" @click="search()">Find</button>
   <span x-show="isError">No event found for that code.</span>
 </div>
+```
+
+### `universityFairEvents` — published Google Sheet
+
+Loads a published Google Sheet CSV into one Alpine component. Put the Webflow component's dynamic
+CSV URL on the root as `data-sheet-url`; the URL is not hardcoded in JavaScript:
+
+```html
+<div x-data="universityFairEvents" data-sheet-url="PUBLISHED_CSV_URL">
+  <div x-show="status === 'loading'">Loading events…</div>
+  <div x-show="status === 'error'">Unable to load events.</div>
+  <div
+    x-show="status === 'empty' || (status === 'ready' && upcomingRows('Date', 'School').length === 0)"
+  >
+    No upcoming events found.
+  </div>
+
+  <div x-show="status === 'ready'">
+    <!-- Put x-for directly on the visible Webflow card; the bridge creates the template. -->
+    <div x-for="row in upcomingRows('Date', 'School')" class="events_card">
+      <div x-text="dateParts(row['Date'])?.weekday"></div>
+      <div x-text="dateParts(row['Date'])?.day"></div>
+      <div x-text="dateParts(row['Date'])?.monthYear"></div>
+      <h3 x-text="row['School'] || 'TBC'"></h3>
+      <div x-show="row['Region']" x-text="row['Region']"></div>
+      <div x-show="row['Time']" x-text="row['Time']"></div>
+      <div x-show="row['Info']" x-text="row['Info']"></div>
+      <a
+        x-show="registration(row['Register']).kind !== 'none'"
+        x-bind:href="registration(row['Register']).href"
+        x-text="registration(row['Register']).label"
+      ></a>
+      <a x-show="websiteUrl(row['Website'])" x-bind:href="websiteUrl(row['Website'])"
+        >Go to website</a
+      >
+    </div>
+  </div>
+</div>
+```
+
+The first CSV row becomes `columns: string[]`; every non-blank data row becomes an object in
+`rows: Record<string, string>[]`. Headers are not predefined, so any field is available through
+`row['Exact Sheet Header']`, and a fully generic UI can loop over `columns` and read `row[column]`.
+Headers must be non-empty and unique.
+
+Load the component on that page:
+
+```html
+<script>
+  window.Webflow ||= [];
+  window.Webflow.push(() => window.startAlpine(['university-fair-events']));
+</script>
 ```
 
 ### Config
