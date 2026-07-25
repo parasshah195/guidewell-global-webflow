@@ -16,7 +16,7 @@ HTML attributes** placed on the Webflow-authored structure.
 search — driven by a small, reusable set of Alpine components.
 
 **Reference build:** the **Summit** project (`summit-project-webflow-site`), which targets
-the *same* OneCanoe org (`guidewelleducation.onecanoe.com`). Summit works but grew to
+the _same_ OneCanoe org (`guidewelleducation.onecanoe.com`). Summit works but grew to
 **~29 Alpine components/stores** with heavy duplication. This project keeps Summit's good
 parts and collapses the duplication.
 
@@ -29,18 +29,20 @@ with auto-fallback to CDN (see `src/entry.ts`, `src/dev/env.ts`, `bin/build.js`)
 ## 2. Background: Summit reference — reuse vs. drop
 
 ### Reuse (port, lightly slimmed)
-| Summit source | Why it's good |
-|---|---|
-| `src/api/eventQueryTypes.ts` | Accurate request/response types for the same API. ~90% reusable. |
-| `src/utils/setEventQueryFromAttr.ts` + `arrayCheck.ts` | The `query-*` attribute → API-param parser. This is the core of attribute-driven config. |
-| `src/utils/getDateTime.ts` + `isMultiDayEvent.ts` | Date/time range, day/timing/test summaries, multi-day check. |
-| `src/utils/queryParamOps.ts` | URL query get/set (filters ↔ shareable URLs). |
-| `src/utils/alpineWebflow.ts` | The Webflow↔Alpine bridge (`:`→`.` rewrite, `<template>` wrapping). Required — Webflow can't author `<template>` or `.` in attribute names. **Authors never hand-place a `<template>` tag** — Webflow's Designer doesn't render `<template>` content in preview, so it'd be invisible/unstyleable in the canvas. Instead `x-for`/`x-if` go straight on the real element for live preview, and the bridge wraps it into a real `<template>` in JS before `Alpine.start()`. |
-| Store-driven reactivity | One shared filter store; multiple lists react to it. Keep this pattern. |
+
+| Summit source                                          | Why it's good                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/api/eventQueryTypes.ts`                           | Accurate request/response types for the same API. ~90% reusable.                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `src/utils/setEventQueryFromAttr.ts` + `arrayCheck.ts` | The `query-*` attribute → API-param parser. This is the core of attribute-driven config.                                                                                                                                                                                                                                                                                                                                                                                  |
+| `src/utils/getDateTime.ts` + `isMultiDayEvent.ts`      | Date/time range, day/timing/test summaries, multi-day check.                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `src/utils/queryParamOps.ts`                           | URL query get/set (filters ↔ shareable URLs).                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `src/utils/alpineWebflow.ts`                           | The Webflow↔Alpine bridge (`:`→`.` rewrite, `<template>` wrapping). Required — Webflow can't author `<template>` or `.` in attribute names. **Authors never hand-place a `<template>` tag** — Webflow's Designer doesn't render `<template>` content in preview, so it'd be invisible/unstyleable in the canvas. Instead `x-for`/`x-if` go straight on the real element for live preview, and the bridge wraps it into a real `<template>` in JS before `Alpine.start()`. |
+| Store-driven reactivity                                | One shared filter store; multiple lists react to it. Keep this pattern.                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 ### Keep these Summit dependencies (required)
-| Dependency | Why it's required for GWG |
-|---|---|
+
+| Dependency                                                  | Why it's required for GWG                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`dayjs`** (+ `utc`, `timezone`, `advancedFormat` plugins) | All event date/time handling goes through dayjs so values sent to and parsed from OneCanoe are **timezone-correct**. The API takes/returns timestamps with offsets and a `timezone` param; native `Intl` is not sufficient for the round-trip. Used in `event-format.ts` and in `eventList.applyFilters` (building `after`/`before`/`timezone`). **Loaded once as a global in `entry.ts`** (`window.dayjs`), not imported per component — see §3 and §7. |
 
 dayjs is the **only** required non-native dependency. The filter date range uses **two native
@@ -48,6 +50,7 @@ dayjs is the **only** required non-native dependency. The filter date range uses
 to the start value for the start-before-end constraint. (Summit used EasePick; dropped here.)
 
 ### Drop / don't port (YAGNI for Phase 1)
+
 - The `QueryAPI` **abstract class + `EventQuery` subclass** → collapse to one `fetchEvents()` function. One endpoint, one function.
 - Six near-identical list components (`eventsList`, `filterEventsOnline`, `filterEventsOnlineOnDemand`, `filterEventsLocations`, `psatPathwaysEvents`, `sbwEvents`) → **one** generic `eventList`.
 - Blog-post shuffling, Webflow slider re-init, webinar tag-image randomisation (Summit `events-list.ts`) → add later **only** if a specific GWG page needs it.
@@ -65,7 +68,7 @@ to the start value for the start-before-end constraint. (Summit used EasePick; d
    `reset` methods, and URL get/set. Webflow binds the filter UI **directly** to the store
    (`x-model="$store.filters.dateAfter"`, `@change="$store.filters.toggleTest('SAT')"`). Lists opt
    in via a `data-use-filters` attribute and re-query on change. Because Alpine runs store `init()`
-   *before* any component `init()`, URL→store hydration completes before lists subscribe → single
+   _before_ any component `init()`, URL→store hydration completes before lists subscribe → single
    initial fetch, no double-query.
 3. **Single `fetchEvents(params)` function** for all API access (no class hierarchy).
 4. **Components never `import` Alpine.** They register on `window.addEventListener('alpine:init', …)`
@@ -92,32 +95,41 @@ to the start value for the start-before-end constraint. (Summit used EasePick; d
 ## 4. Scope
 
 ### Phase 1 (this PRD) — Foundation + event lists + filters
+
 Foundation (Alpine bridge, API layer, utils), the generic `eventList`, and the filter
 system (behavioral `filters` store; UI binds directly to it). Covers CSV deliverables #1, #6, #7, #8 (list/filter
 parts) and the error/empty states of #10.
 
+### Phase 4 — University Fair Events (CSV #2)
+
+One `universityFairEvents` Alpine component fetches a published Google Sheet CSV URL supplied by
+Webflow via `data-sheet-url`. The component owns fetch, CSV parsing, dynamic row mapping, display
+helpers, and loading/error/empty/ready state in one production file. It exposes every sheet header
+through `columns` and every data row through `rows: Record<string, string>[]`; it does not map the
+sheet to OneCanoe's `APIResponse` or reuse `eventList`.
+
 ### Roadmap (later phases, NOT built now)
+
 - **Phase 2 — Search & event-code (CSV #1, #5):** `eventCodeSearch` (find by code → redirect);
   Search Results custom sections = `eventList` instances beside native Webflow search.
 - **Phase 3 — Campaign Landing registration (CSV #4):** `eventRegistration` + `thankYou`.
   CSV: "TBC if needed July/August." Defer until confirmed.
-- **Phase 4 — Google Sheets University Fairs (CSV #2):** thin fetch adapter feeding the **same**
-  `eventList` renderer. Undocumented public API → isolate.
 - **Handover (CSV #11):** document the attribute API + `startAlpine` pattern in the README.
 
 ---
 
 ## 5. CSV deliverables → implementation map
 
-| CSV # | Deliverable | Phase 1 implementation |
-|---|---|---|
-| 1 | Events API across pages | `eventList` instances with different `query-*` attrs per page. |
-| 6 | Practice Tests page + filters | Mock Tests (v2) page uses **three separate `eventList` instances**: in-person (`query-is_online="false"` + `data-group-by="location"` → `groups` loop per location + `priceSummary`), online-live (`query-is_online="true"` → flat `events` loop), on-demand (static content — not independently queryable from the API). All with `data-use-filters`. Filter UI bound directly to the `filters` store (tests, location radios, date range via two native date inputs, ET, days, **proctored**). State shown via `x-show="status === '...'"` on wrapper divs around each ComponentInstance. |
-| 7 | Group Classes (SAT only) | `eventList` with `query-category="['class']"` + SAT `query-topics`. |
-| 8 | Webinars page | Two `eventList` instances: Featured (limit 3) + Upcoming (date-sorted). Tag images deferred. |
-| 10 | Testing / edge cases | `status` (`loading`/`error`/`empty`/`ready`) + `depleted`/`moreLoading` states on `eventList`. |
-| 3 | Combination sliders (blog + events) | Deferred — "nice to have, not a priority." |
-| 2, 4, 5 | Google Sheets, Campaign Landing, Search | Later phases (see roadmap). |
+| CSV # | Deliverable                         | Phase 1 implementation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ----- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Events API across pages             | `eventList` instances with different `query-*` attrs per page.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| 6     | Practice Tests page + filters       | Mock Tests (v2) page uses **three separate `eventList` instances**: in-person (`query-is_online="false"` + `data-group-by="location"` → `groups` loop per location + `priceSummary`), online-live (`query-is_online="true"` → flat `events` loop), on-demand (static content — not independently queryable from the API). All with `data-use-filters`. Filter UI bound directly to the `filters` store (tests, location radios, date range via two native date inputs, ET, days, **proctored**). State shown via `x-show="status === '...'"` on wrapper divs around each ComponentInstance. |
+| 7     | Group Classes (SAT only)            | `eventList` with `query-category="['class']"` + SAT `query-topics`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 8     | Webinars page                       | Two `eventList` instances: Featured (limit 3) + Upcoming (date-sorted). Tag images deferred.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| 10    | Testing / edge cases                | `status` (`loading`/`error`/`empty`/`ready`) + `depleted`/`moreLoading` states on `eventList`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| 3     | Combination sliders (blog + events) | Deferred — "nice to have, not a priority."                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 2     | University Fairs                    | `universityFairEvents`: published CSV → dynamic Alpine `columns`/`rows`; Webflow renders the cards.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 4, 5  | Campaign Landing, Search            | Later phases (see roadmap).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 ---
 
@@ -127,33 +139,36 @@ These attributes go on the element that carries `x-data="eventList"` (its **root
 The component reads them off `this.$root` — **no `x-ref` needed**.
 
 ### `query-*` — API parameters (parsed & type-coerced)
+
 Any `QueryParams` key, prefixed with `query-`. Value type is auto-detected:
 number (`12`), date (`2026-07-01`), boolean (`true`/`false`), array (`['SAT','ACT']` or `[134,49]`), else string.
 
-> **Coercion ceiling (`parseAttrValue`):** detection is by string *shape*, not by target key. Edge:
+> **Coercion ceiling (`parseAttrValue`):** detection is by string _shape_, not by target key. Edge:
 > an all-digit `event_code` would coerce to a number, and `Date.parse` is loose. Acceptable for the
 > current attrs; upgrade to per-key typed coercion (keyed off `QueryParamsProperties`) only if a
 > real value ever collides. Covered by `event-attrs.test.ts`.
 
-| Attribute | Example | Maps to |
-|---|---|---|
-| `query-category` | `['marketing_event']` | `category` |
-| `query-topics` | `[134, 49]` | `topics` (test IDs) |
-| `query-limit` | `12` | `limit` |
-| `query-is_online` | `true` | `is_online` |
-| `query-location_id` | `5` | `location_id` |
-| `query-before` / `query-after` | `2026-09-01` | date range |
-| `query-event_code` | `EVT83DD6` | `event_code` |
-| `query-tags` | `['SAT Prep']` | `tags` |
+| Attribute                      | Example               | Maps to             |
+| ------------------------------ | --------------------- | ------------------- |
+| `query-category`               | `['marketing_event']` | `category`          |
+| `query-topics`                 | `[134, 49]`           | `topics` (test IDs) |
+| `query-limit`                  | `12`                  | `limit`             |
+| `query-is_online`              | `true`                | `is_online`         |
+| `query-location_id`            | `5`                   | `location_id`       |
+| `query-before` / `query-after` | `2026-09-01`          | date range          |
+| `query-event_code`             | `EVT83DD6`            | `event_code`        |
+| `query-tags`                   | `['SAT Prep']`        | `tags`              |
 
 ### `data-*` — display config
-| Attribute | Values | Effect |
-|---|---|---|
-| `data-group-by` | `location` \| (absent) | `location`: expose `groups` (in-person locations first, then `Online`, then `Online (On Demand)`), each with a `priceSummary`. Absent: flat `events` list. |
-| `data-use-filters` | present / absent | Subscribe to the `filters` store; re-query on change. |
-| `data-topics-exclude` | `SAT,ACT` | Drop events whose topics intersect this list. |
+
+| Attribute             | Values                 | Effect                                                                                                                                                     |
+| --------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-group-by`       | `location` \| (absent) | `location`: expose `groups` (in-person locations first, then `Online`, then `Online (On Demand)`), each with a `priceSummary`. Absent: flat `events` list. |
+| `data-use-filters`    | present / absent       | Subscribe to the `filters` store; re-query on change.                                                                                                      |
+| `data-topics-exclude` | `SAT,ACT`              | Drop events whose topics intersect this list.                                                                                                              |
 
 ### Component state exposed to the template
+
 `events: APIResponse[]`, `groups: EventGroup[]`, and a single phase enum
 `status: 'loading' | 'error' | 'empty' | 'ready'` (exactly one full-screen UI block shows — bind
 `x-show="status === 'error'"` etc.; no contradictory/limbo combos), plus the orthogonal sub-flags
@@ -162,14 +177,16 @@ number (`12`), date (`2026-07-01`), boolean (`true`/`false`), array (`['SAT','AC
 see §10), `viewMore()`.
 
 ### Filter UI bindings (Webflow → `filters` store)
+
 There is **no `filterForm` component** — the Webflow filter controls bind **directly** to the
 behavioral `filters` store:
+
 - `x-model="$store.filters.location"`, `@change="$store.filters.toggleTest('SAT')"`,
   `@click="$store.filters.reset()"`.
 - **Date range — two native date inputs:**
   ```html
-  <input type="date" x-model="$store.filters.dateAfter">
-  <input type="date" x-model="$store.filters.dateBefore" x-bind:min="$store.filters.dateAfter">
+  <input type="date" x-model="$store.filters.dateAfter" />
+  <input type="date" x-model="$store.filters.dateBefore" x-bind:min="$store.filters.dateAfter" />
   ```
   The end input's `min` (bound to the start value) prevents an end-before-start selection — no
   picker library, no CDN CSS. The store keeps dates as plain `YYYY-MM-DD` strings; the global
@@ -180,6 +197,29 @@ behavioral `filters` store:
 (shareable/bookmarkable). The URL is never read again after init — this prevents sync loops.
 `reset()` zeroes the store **in place** (never `window.location.reload()`); the lists' effects
 re-query automatically.
+
+### `universityFairEvents` — published Google Sheet
+
+The root carries `x-data="universityFairEvents"` and a required `data-sheet-url` whose value comes
+from a Webflow component property. The URL is never hardcoded in TypeScript.
+
+The component exposes:
+
+- `columns: string[]` — the first CSV row, preserving exact header text and order;
+- `rows: Record<string, string>[]` — every non-blank row keyed by those dynamic headers;
+- `status: 'loading' | 'error' | 'empty' | 'ready'`;
+- `dateParts(value)`, `isUpcoming(value)`, and `upcomingRows(dateColumn, requiredColumn?)`;
+- `registration(value)` for a safe HTTP(S) or email registration link; and
+- `websiteUrl(value)` for a safe HTTP(S) website link.
+
+Headers must be non-empty and unique. Short rows get `''` for missing trailing cells; extra cells
+and entirely blank rows are ignored. Values remain strings. Webflow selects the fields it displays
+with bracket access such as `row['School']`; the component never defines a column list.
+
+The current University Fairs card uses `upcomingRows('Date', 'School')`, derives its calendar badge
+with `dateParts(row['Date'])`, and conditionally shows Region, Time, Info, Register, and Website.
+Audience, Format, Type, and any future columns remain available in `rows`. Sheet values render via
+`x-text`/`x-bind`, never `x-html`.
 
 ---
 
@@ -199,7 +239,9 @@ src/
                           #   (URL hydrate + mirror), toggleTest/toggleDay/reset, getQueryParam/setQueryParams
   components/
     event-list.ts         # generic attribute-driven component (only component)
+    university-fair-events.ts       # published CSV fetch/parser + dynamic Alpine rows and helpers
   utils/
+    university-fair-events.test.ts  # one focused parser/behavior check; no runtime code split
     event-attrs.ts        # setEventQueryFromAttr() + parseAttrValue() (exported, tested)
     event-attrs.test.ts   # bun:test — parser type coercion
     event-format.ts       # date/time/price helpers — uses GLOBAL dayjs (not imported) + filterExcludedTopics()
@@ -223,40 +265,73 @@ package.json              # EDIT: add alpinejs, @types/alpinejs, dayjs  (no Ease
 export async function fetchEvents(params: QueryParams): Promise<APIResponse[] | null>;
 
 // utils/event-attrs.ts  (parseAttrValue: coercion-by-shape; see §6 ceiling note)
-export function setEventQueryFromAttr(el: HTMLElement, component: { baseParams: QueryParams }): void;
-export function parseAttrValue(value: string): number | boolean | string | Array<string | number> | Date;
+export function setEventQueryFromAttr(
+  el: HTMLElement,
+  component: { baseParams: QueryParams }
+): void;
+export function parseAttrValue(
+  value: string
+): number | boolean | string | Array<string | number> | Date;
 
 // utils/event-format.ts  — uses the GLOBAL `dayjs` (initialised once in entry.ts, NOT imported here),
 //                          so esbuild keeps it external and it isn't duplicated into this bundle.
 export function isMultiDayEvent(event: APIResponse): boolean;
-export function getEventDateRange(event: APIResponse): string;           // "Aug 12 (Mon, Tue)" / "Aug 12 - Aug 15 (...)" / "On demand"
-export function getTimeRange(start: string | null, end?: string | null, includeTimeZone?: boolean): string; // "9:00 AM - 5:00 PM (GMT)"
+export function getEventDateRange(event: APIResponse): string; // "Aug 12 (Mon, Tue)" / "Aug 12 - Aug 15 (...)" / "On demand"
+export function getTimeRange(
+  start: string | null,
+  end?: string | null,
+  includeTimeZone?: boolean
+): string; // "9:00 AM - 5:00 PM (GMT)"
 export function getPriceSummary(input: APIResponse | APIResponse[]): string; // event → "£X"; events → "£X - £Y" — VAT-inclusive
-export function applyVAT(price: string): string;                         // ex-VAT string -> VAT-inclusive string (`* VAT_MULTIPLIER`); non-numeric passes through unchanged
+export function applyVAT(price: string): string; // ex-VAT string -> VAT-inclusive string (`* VAT_MULTIPLIER`); non-numeric passes through unchanged
 export function filterExcludedTopics(el: HTMLElement, events: APIResponse[]): APIResponse[];
 // Deferred (port only when a page renders them): getDays() "Weekly (Mon, Tue)",
 // getTimings() "Mornings/Afternoons", getTestsList() "SAT, ACT" — no Phase-1 page uses these.
 
+// components/university-fair-events.ts — all production behavior stays in this one file.
+export function parseSheetCsv(csv: string): { columns: string[]; rows: Record<string, string>[] };
+export function dateParts(
+  value: string
+): { weekday: string; day: string; monthYear: string } | null;
+export function isUpcoming(value: string, today?: Date): boolean;
+export function getUpcomingRows(
+  rows: Record<string, string>[],
+  dateColumn: string,
+  requiredColumn?: string,
+  today?: Date
+): Record<string, string>[];
+export function registration(value: string): {
+  kind: 'url' | 'email' | 'none';
+  href: string;
+  label: string;
+};
+export function websiteUrl(value: string): string;
+
 // stores/filters.ts  — ONE behavioral store (no filterForm component). Owns state + behaviour + URL ops.
 export type FilterLocation = 'online' | 'in-person' | 'both';
 export interface FiltersStore {
-  tests: string[]; location: FilterLocation;
-  dateAfter: string | null; dateBefore: string | null;
-  extendedTime: boolean; daysOfWeek: string[]; proctored: boolean;
-  init(): void;                  // hydrate from URL once, then Alpine.effect(() => syncUrl(this))
+  tests: string[];
+  location: FilterLocation;
+  dateAfter: string | null;
+  dateBefore: string | null;
+  extendedTime: boolean;
+  daysOfWeek: string[];
+  proctored: boolean;
+  init(): void; // hydrate from URL once, then Alpine.effect(() => syncUrl(this))
   toggleTest(test: string): void;
   toggleDay(day: string): void;
-  reset(): void;                 // zero all fields IN PLACE — never window.location.reload()
+  reset(): void; // zero all fields IN PLACE — never window.location.reload()
   // internal: syncUrl() via setQueryParams; getQueryParam/setQueryParams live here (ported subset,
   // were utils/query-params.ts — folded in as this is the only consumer).
 }
 export const FILTERS_STORE = 'filters';
-export function registerFiltersStore(): void;     // window.Alpine.store(FILTERS_STORE, …)
-export function getFiltersStore(): FiltersStore;   // window.Alpine.store(FILTERS_STORE)
+export function registerFiltersStore(): void; // window.Alpine.store(FILTERS_STORE, …)
+export function getFiltersStore(): FiltersStore; // window.Alpine.store(FILTERS_STORE)
 // applyFilters lives on eventList (below) and READS this store → Partial<QueryParams>.
 ```
 
 **`eventList` behaviour (query body is DERIVED, not mutated):**
+
 - Holds `baseParams: QueryParams` (set once at init) + the page enum `status` + `depleted`/`moreLoading`.
 - `init()`: `setEventQueryFromAttr(this.$root, this)` → fills `baseParams`. If `data-use-filters` →
   `Alpine.effect(() => { readFiltersStore(); debouncedReload() })` (effect tracks the store; ~200ms
@@ -283,11 +358,13 @@ It defines `window.loadScript` (exists) and `window.startAlpine` (to add):
 
 ```ts
 window.startAlpine = (components) =>
-  Promise.all(components.map((name) => window.loadScript(`components/${name}.js`)))
-    .then(() => window.loadScript('alpine.js'));
+  Promise.all(components.map((name) => window.loadScript(`components/${name}.js`))).then(() =>
+    window.loadScript('alpine.js')
+  );
 ```
 
 **Per-page footer embed** (inside `Webflow.push` so the DOM is ready):
+
 ```html
 <script>
   window.Webflow ||= [];
@@ -305,11 +382,13 @@ then starts (guarded on `DOMContentLoaded`).
 ## 10. Config & open items
 
 `src/constants.ts` is the only file needing real values before go-live:
+
 - `API_BASE` — **Confirmed** by Ashley Rose (2026-07-16): `https://guidewelleducation.onecanoe.com/api/gwg/public/v2`
   (same `/api/{project}/public/v2` pattern as Summit, `gwg` slug).
 - `TEST_TOPIC_IDS` — **Confirmed 2026-07-16 (user-supplied):** full mapping of SAT, ACT, PSAT, SHSAT, EACT, EF Coaching, AP (all subjects + per-subject), SSAT (all levels), ISEE (all levels). Live in `src/constants.ts`.
 
 **Confirmed against the live API (2026-07-16, unfiltered `GET /events` sample):**
+
 - No `proctored` field or request filter param exists at all — confirmed by Ashley Rose/Luke
   Anthony (GWG team, Jun–Jul 2026 thread): proctored-ness is conveyed by a `'Proctored'` string in
   the `tags` array; absence of the tag means non-proctored. Luke's own reference implementation
@@ -331,18 +410,19 @@ then starts (guarded on `DOMContentLoaded`).
   VAT-inclusive everywhere downstream — no separate ex/inc-VAT field or client-side `*1.2`. Treat
   `null`/`0`/non-numeric as "Free" (`applyVAT` passes non-numeric prices through unchanged).
 - Response `type` values are `'class' | 'marketing_event' | 'practice_test_event'` — note
-  `practice_test_event`, not `'practice_test'` (that string is only valid for the *request*
+  `practice_test_event`, not `'practice_test'` (that string is only valid for the _request_
   `category` filter; see `EventType` vs `QueryParamsCategories` in `api/types.ts`).
 - On-demand practice tests aren't part of the events API at all — GWG's Mock Tests page hardcodes
   a small list of `{ name, topic, url }` with `on_demand=<id>` query params on the registration URL.
   Not built here yet; page-specific work if/when the Practice Tests page needs it.
 
 **Still to confirm with GWG/OneCanoe (do not block foundation work):**
+
 - Audience filter for live events (students/schools/all)? (CSV #1)
 - Location images for Practice Tests page. (CSV #6)
 
 **Known edge (build only if it bites):** rapid filter changes can let an earlier `fetchEvents`
-resolve *after* a later one and overwrite fresh results. The ~200ms re-query debounce (§8) shrinks
+resolve _after_ a later one and overwrite fresh results. The ~200ms re-query debounce (§8) shrinks
 the window; the full fix is an `AbortController` per list (thread a `signal` through `fetchEvents`)
 to cancel the in-flight request before issuing the next. Not built in Phase 1.
 
@@ -387,6 +467,7 @@ Unit tests (`bun test`) gate two moments: **before a prod build** and **before m
 gate is wired depends on where the build runs — and the build is moving.
 
 **Current (temporary) — build is local, `dist/prod/` is committed:**
+
 - `package.json` chains the gate into the local build: `"build": "bun test && …esbuild"`, so a red
   suite aborts the build before it writes `dist/prod/`.
 - `.github/workflows/ci.yml` runs `bun test` on `pull_request` (the real pre-merge gate — a PR into
@@ -395,10 +476,11 @@ gate is wired depends on where the build runs — and the build is moving.
 - Enforce by making the `CI` check **required** on `main` in branch protection.
 
 **Production (planned) — CI builds and pushes to a custom CDN; `dist/prod/` NOT committed:**
+
 - Stop committing `dist/prod/` (gitignore it); CI produces it fresh each deploy. This removes the
   "committed artifact can drift or bypass tests" problem entirely.
 - The deploy workflow (`on: push: main`) runs one fail-fast job: `install → bun test → bun run build
-  → push to CDN`. Because the steps are sequential, a red test stops the run **before** build or
+→ push to CDN`. Because the steps are sequential, a red test stops the run **before** build or
   deploy — a real block, not an after-the-fact report (which is all a post-merge run can be).
 - The PR workflow (`on: pull_request`) runs `install → bun test → bun run build` (add `build` so a PR
   can't merge code that passes tests but doesn't bundle), kept as the required check that blocks the
@@ -406,5 +488,5 @@ gate is wired depends on where the build runs — and the build is moving.
 - Revert `package.json` `build` to plain esbuild (drop the `bun test &&` chain): once CI owns the
   gate, one source of truth is cleaner. `"test": "bun test"` stays for local runs.
 
-The tests themselves are pipeline-agnostic — only the gate's *location* moves (from the `build`
+The tests themselves are pipeline-agnostic — only the gate's _location_ moves (from the `build`
 npm-script into explicit CI stages). See [`TODO.md`](./TODO.md) §8.
