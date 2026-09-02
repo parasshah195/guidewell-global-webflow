@@ -15,7 +15,7 @@ export interface FiltersStore {
 
 export const FILTERS_STORE = 'filters';
 
-type FilterField = keyof Omit<FiltersStore, 'init' | 'reset'>;
+type FilterField = keyof Omit<FiltersStore, 'init' | 'reset' | 'resetDays'>;
 
 const QUERY_KEYS: Record<FilterField, string> = {
   tests: 'tests',

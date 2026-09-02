@@ -164,18 +164,20 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 
 ### Phase 4 — Google Sheets University Fairs (CSV #2)
 
-- [ ] Update PRD/TODO contract: one `universityFairEvents` production file, dynamic columns/rows,
+- [x] Update PRD/TODO contract: one `universityFairEvents` production file, dynamic columns/rows,
       URL from `data-sheet-url`, no `APIResponse` mapping.
-- [ ] `components/university-fair-events.ts`: fetch published CSV, parse quoted CSV, expose
+- [x] `components/university-fair-events.ts`: fetch published CSV, parse quoted CSV, expose
       `columns`/`rows` + `loading|error|empty|ready`, and add column-agnostic date/upcoming/link helpers.
-- [ ] `utils/university-fair-events.test.ts`: one focused runnable check for CSV shape,
+- [x] `utils/university-fair-events.test.ts`: one focused runnable check for CSV shape,
       dynamic headers, calendar-date behavior, sorting/filtering, and safe links.
-- [ ] README: document `universityFairEvents`, `data-sheet-url`, dynamic row access, helpers, and
+- [x] README: document `universityFairEvents`, `data-sheet-url`, dynamic row access, helpers, and
       `startAlpine(['university-fair-events'])`.
-- [ ] **Verify:** `bun test`, `bunx tsc --noEmit`, and `bun run build`; confirm
+- [x] **Verify:** `bun test`, `bunx tsc --noEmit`, and `bun run build`; confirm
       `dist/prod/components/university-fair-events.js` is emitted.
 - [ ] **Live verify:** published CSV loads on GWG staging; upcoming cards sort correctly; optional
       fields/buttons and loading/empty/error states render from Webflow bindings.
+      Transport verified 2026-07-26: published URL returns CSV with CORS `*`; parser read the 10
+      live headers, 27 rows, and 7 upcoming rows. Webflow staging render remains.
 
 ### Handover (CSV #11)
 

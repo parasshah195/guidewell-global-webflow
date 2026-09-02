@@ -203,3 +203,7 @@ test('getTimeRange formats start-only, a range, and empty', () => {
 test('getTimeRange appends a timezone abbreviation by default', () => {
   expect(getTimeRange('2026-07-01T09:00:00Z')).toMatch(/^\d{1,2}:\d{2} [AP]M \(.+\)$/);
 });
+
+test('getTimeRange preserves an API timestamp offset', () => {
+  expect(getTimeRange('2026-09-12T10:00:00+01:00', null, false)).toBe('10:00 AM');
+});

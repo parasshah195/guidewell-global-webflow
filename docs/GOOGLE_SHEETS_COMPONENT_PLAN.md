@@ -67,18 +67,18 @@ the JavaScript does not define or whitelist those headings.
 
 The supplied implementation currently reads ten positional columns:
 
-| Current column | Current use                                                                                                             |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| School         | Card heading; falls back to `TBC`; rows without it are discarded                                                        |
-| Region         | Location text; location block hidden when empty                                                                         |
-| Date           | Required for display; past and invalid dates discarded; upcoming rows sorted ascending                                  |
-| Time           | Time text; time block hidden when empty                                                                                 |
-| Audience       | Loaded but not displayed                                                                                                |
-| Register       | First URL becomes a Register link; otherwise first email becomes a `mailto:` link; button hidden for other/empty values |
-| Info           | Plain text; information block hidden when empty                                                                         |
-| Format         | Loaded but not displayed                                                                                                |
-| Type           | Loaded but not displayed                                                                                                |
-| Website        | Website link; button hidden when empty                                                                                  |
+| Live sheet header | Current use |
+|---|---|
+| School Name | Card heading; falls back to `TBC`; rows without it are discarded |
+| Region | Location text; location block hidden when empty |
+| Date | Required for display; past and invalid dates discarded; upcoming rows sorted ascending |
+| Time | Time text; time block hidden when empty |
+| Audience | Loaded but not displayed |
+| How to Register | First URL becomes a Register link; otherwise first email becomes a `mailto:` link; button hidden for other/empty values |
+| Additional Info | Plain text; information block hidden when empty |
+| Online/In-Person | Loaded but not displayed |
+| Event Type | Loaded but not displayed |
+| School Website | Website link; button hidden when empty |
 
 The date badge is derived from `Date` as weekday, day, and abbreviated month plus year. The live
 markup also has distinct loading, empty, and error states.
@@ -97,21 +97,22 @@ websiteUrl(value: string): string;
 Webflow chooses the columns when binding the card, for example:
 
 ```html
-<div x-for="row in upcomingRows('Date', 'School')">
-  <h3 x-text="row['School'] || 'TBC'"></h3>
+<div x-for="row in upcomingRows('Date', 'School Name')">
+  <h3 x-text="row['School Name'] || 'TBC'"></h3>
   <div x-show="row['Region']" x-text="row['Region']"></div>
   <div x-show="row['Time']" x-text="row['Time']"></div>
-  <div x-show="row['Info']" x-text="row['Info']"></div>
+  <div x-show="row['Additional Info']" x-text="row['Additional Info']"></div>
 </div>
 ```
 
-This keeps every column available in `rows`, including currently unused `Audience`, `Format`, and
-`Type`, while allowing a future sheet to use entirely different headers. If the actual header is
-renamed, only the Webflow binding changes.
+This keeps every column available in `rows`, including currently unused `Audience`,
+`Online/In-Person`, and `Event Type`, while allowing a future sheet to use entirely different
+headers. If the actual header is renamed, only the Webflow binding changes.
 
 `status === 'empty'` means the published sheet has no data rows. For the current page, the empty
-block also checks `status === 'ready' && upcomingRows('Date', 'School').length === 0`, preserving
-the old “no upcoming events” behavior without making `Date` or `School` component-level constants.
+block also checks
+`status === 'ready' && upcomingRows('Date', 'School Name').length === 0`, preserving the old “no
+upcoming events” behavior without making `Date` or `School Name` component-level constants.
 
 The Alpine component does not clone cards, query `[data-role]` elements, or construct UI with
 `innerHTML`. Webflow owns the existing card and state markup; Alpine supplies `x-for`, `x-show`,

@@ -12,5 +12,6 @@
       "$stores/*": ["src/stores/*"],
       "$constants": ["src/constants.ts"]
     }
-  }
+  },
+  "exclude": ["src/**/*.test.ts"]
 }
