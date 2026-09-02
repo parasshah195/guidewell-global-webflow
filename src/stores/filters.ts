@@ -16,10 +16,7 @@ export interface FiltersStore {
 
 export const FILTERS_STORE = 'filters';
 
-type FilterField = Exclude<
-  keyof Omit<FiltersStore, 'init' | 'reset' | 'resetDays'>,
-  'showOnDemandEvents'
->;
+type FilterField = keyof Omit<FiltersStore, 'init' | 'reset' | 'resetDays'>;
 
 const QUERY_KEYS: Record<FilterField, string> = {
   tests: 'tests',
@@ -29,6 +26,7 @@ const QUERY_KEYS: Record<FilterField, string> = {
   extendedTime: 'et',
   daysOfWeek: 'days',
   proctored: 'proctored',
+  showOnDemandEvents: 'on-demand',
 };
 
 function getQueryParam(param: string): string {
@@ -60,10 +58,6 @@ export function registerFiltersStore(): void {
       // inputs < URL query param. Inputs opt in with `data-filter="<field>"`; type of the current
       // default decides how each tier is parsed. Runs before Alpine renders the inputs' bindings.
       const params = new URLSearchParams(window.location.search);
-      this.showOnDemandEvents =
-        document
-          .querySelector<HTMLInputElement>('[data-filter="showOnDemandEvents"]')
-          ?.hasAttribute('checked') ?? false;
 
       (Object.keys(QUERY_KEYS) as FilterField[]).forEach((field) => {
         const key = QUERY_KEYS[field];
@@ -97,6 +91,10 @@ export function registerFiltersStore(): void {
           { param: QUERY_KEYS.extendedTime, value: this.extendedTime ? 'true' : null },
           // daysOfWeek is intentionally not URL-synced (HTML default only) — noisy in the query string
           { param: QUERY_KEYS.proctored, value: this.proctored ? 'true' : null },
+          {
+            param: QUERY_KEYS.showOnDemandEvents,
+            value: this.showOnDemandEvents ? 'true' : null,
+          },
         ]);
       });
     },
