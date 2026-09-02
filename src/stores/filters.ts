@@ -8,6 +8,7 @@ export interface FiltersStore {
   extendedTime: boolean;
   daysOfWeek: string[];
   proctored: boolean;
+  showOnDemandEvents: boolean;
   init(): void;
   reset(): void;
   resetDays(): void;
@@ -25,6 +26,7 @@ const QUERY_KEYS: Record<FilterField, string> = {
   extendedTime: 'et',
   daysOfWeek: 'days',
   proctored: 'proctored',
+  showOnDemandEvents: 'on-demand',
 };
 
 function getQueryParam(param: string): string {
@@ -49,6 +51,7 @@ export function registerFiltersStore(): void {
     extendedTime: false,
     daysOfWeek: [],
     proctored: false,
+    showOnDemandEvents: false,
 
     init() {
       // Precedence (increasing): store default (the literals above) < HTML `checked` on registered
@@ -58,20 +61,22 @@ export function registerFiltersStore(): void {
 
       (Object.keys(QUERY_KEYS) as FilterField[]).forEach((field) => {
         const key = QUERY_KEYS[field];
-        const inputs = [
-          ...document.querySelectorAll<HTMLInputElement>(`[data-filter="${field}"]`),
-        ];
+        const inputs = [...document.querySelectorAll<HTMLInputElement>(`[data-filter="${field}"]`)];
         const current = this[field];
 
         if (Array.isArray(current)) {
-          if (inputs.length) this[field] = inputs.filter((i) => i.checked).map((i) => i.value) as never;
-          if (params.has(key)) this[field] = (getQueryParam(key) ? getQueryParam(key).split(',') : []) as never;
+          if (inputs.length)
+            this[field] = inputs
+              .filter((i) => i.hasAttribute('checked'))
+              .map((i) => i.value) as never;
+          if (params.has(key))
+            this[field] = (getQueryParam(key) ? getQueryParam(key).split(',') : []) as never;
         } else if (typeof current === 'boolean') {
-          if (inputs.length) this[field] = inputs[0].checked as never;
+          if (inputs.length) this[field] = inputs[0].hasAttribute('checked') as never;
           if (params.has(key)) this[field] = (getQueryParam(key) === 'true') as never;
         } else {
           // scalar (location, dateAfter/before): first checked input, then URL value
-          const picked = inputs.find((i) => i.checked)?.value;
+          const picked = inputs.find((i) => i.hasAttribute('checked'))?.value;
           if (picked) this[field] = picked as never;
           if (params.has(key)) this[field] = (getQueryParam(key) || null) as never;
         }
@@ -86,6 +91,10 @@ export function registerFiltersStore(): void {
           { param: QUERY_KEYS.extendedTime, value: this.extendedTime ? 'true' : null },
           // daysOfWeek is intentionally not URL-synced (HTML default only) — noisy in the query string
           { param: QUERY_KEYS.proctored, value: this.proctored ? 'true' : null },
+          {
+            param: QUERY_KEYS.showOnDemandEvents,
+            value: this.showOnDemandEvents ? 'true' : null,
+          },
         ]);
       });
     },
@@ -98,6 +107,7 @@ export function registerFiltersStore(): void {
       this.extendedTime = false;
       this.daysOfWeek = [];
       this.proctored = false;
+      this.showOnDemandEvents = false;
     },
 
     // Select every day — derives the full set from the rendered checkboxes so there's no day list
