@@ -50,7 +50,7 @@ function filters(p: Partial<FiltersStore> = {}): FiltersStore {
     extendedTime: false,
     daysOfWeek: [],
     proctored: false,
-    onDemand: false,
+    showOnDemandEvents: false,
     init() {},
     reset() {},
     resetDays() {},
