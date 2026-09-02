@@ -317,7 +317,7 @@ export interface FiltersStore {
   extendedTime: boolean;
   daysOfWeek: string[];
   proctored: boolean;
-  showOnDemandEvents: boolean; // controls the static on-demand block; never sent to the Events API
+  showOnDemandEvents: boolean; // static block only; HTML default/reset, no API or URL parameter
   init(): void; // hydrate from URL once, then Alpine.effect(() => syncUrl(this))
   toggleTest(test: string): void;
   toggleDay(day: string): void;
