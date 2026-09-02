@@ -214,12 +214,12 @@ The component exposes:
 
 Headers must be non-empty and unique. Short rows get `''` for missing trailing cells; extra cells
 and entirely blank rows are ignored. Values remain strings. Webflow selects the fields it displays
-with bracket access such as `row['School']`; the component never defines a column list.
+with bracket access such as `row['School Name']`; the component never defines a column list.
 
-The current University Fairs card uses `upcomingRows('Date', 'School')`, derives its calendar badge
-with `dateParts(row['Date'])`, and conditionally shows Region, Time, Info, Register, and Website.
-Audience, Format, Type, and any future columns remain available in `rows`. Sheet values render via
-`x-text`/`x-bind`, never `x-html`.
+The current University Fairs card uses `upcomingRows('Date', 'School Name')`, derives its calendar
+badge with `dateParts(row['Date'])`, and conditionally shows Region, Time, Additional Info, How to
+Register, and School Website. Audience, Online/In-Person, Event Type, and any future columns remain
+available in `rows`. Sheet values render via `x-text`/`x-bind`, never `x-html`.
 
 ---
 

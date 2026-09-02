@@ -11,18 +11,22 @@ import {
 
 test('parseSheetCsv exposes dynamic headers and handles real CSV quoting/row shapes', () => {
   const result = parseSheetCsv(
-    '\uFEFFSchool,Info,Audience\r\n' +
+    '\uFEFFSchool Name,Additional Info,Audience\r\n' +
       '"University, A","Line 1\nLine ""2""",Students\r\n' +
       'University B\r\n' +
       ',,\r\n' +
       'University C,Info,Parents,ignored'
   );
 
-  expect(result.columns).toEqual(['School', 'Info', 'Audience']);
+  expect(result.columns).toEqual(['School Name', 'Additional Info', 'Audience']);
   expect(result.rows).toEqual([
-    { School: 'University, A', Info: 'Line 1\nLine "2"', Audience: 'Students' },
-    { School: 'University B', Info: '', Audience: '' },
-    { School: 'University C', Info: 'Info', Audience: 'Parents' },
+    {
+      'School Name': 'University, A',
+      'Additional Info': 'Line 1\nLine "2"',
+      Audience: 'Students',
+    },
+    { 'School Name': 'University B', 'Additional Info': '', Audience: '' },
+    { 'School Name': 'University C', 'Additional Info': 'Info', Audience: 'Parents' },
   ]);
   expect(() => parseSheetCsv('School,School\nA,B')).toThrow('CSV headers must be unique');
   expect(() => parseSheetCsv('School, \nA,B')).toThrow('CSV headers must not be blank');
@@ -32,11 +36,11 @@ test('parseSheetCsv exposes dynamic headers and handles real CSV quoting/row sha
 test('date helpers preserve local calendar dates and sort upcoming required rows', () => {
   const today = new Date(2026, 6, 25);
   const rows = [
-    { School: 'Later', Date: '8/2/2026' },
-    { School: 'Past', Date: '7/24/2026' },
-    { School: 'Sooner', Date: '07/25/26' },
-    { School: '', Date: '8/1/2026' },
-    { School: 'Invalid', Date: '31/12/2026' },
+    { 'School Name': 'Later', Date: '8/2/2026' },
+    { 'School Name': 'Past', Date: '7/24/2026' },
+    { 'School Name': 'Sooner', Date: '07/25/26' },
+    { 'School Name': '', Date: '8/1/2026' },
+    { 'School Name': 'Invalid', Date: '31/12/2026' },
   ];
 
   expect(dateParts('8/1/2026')).toEqual({
@@ -47,10 +51,9 @@ test('date helpers preserve local calendar dates and sort upcoming required rows
   expect(dateParts('2026-08-01')).toEqual(dateParts('8/1/2026'));
   expect(isUpcoming('7/25/2026', today)).toBe(true);
   expect(isUpcoming('7/24/2026', today)).toBe(false);
-  expect(getUpcomingRows(rows, 'Date', 'School', today).map((row) => row.School)).toEqual([
-    'Sooner',
-    'Later',
-  ]);
+  expect(
+    getUpcomingRows(rows, 'Date', 'School Name', today).map((row) => row['School Name'])
+  ).toEqual(['Sooner', 'Later']);
 });
 
 test('link helpers preserve the live URL/email behavior and reject unsafe protocols', () => {

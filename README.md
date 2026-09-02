@@ -257,27 +257,29 @@ CSV URL on the root as `data-sheet-url`; the URL is not hardcoded in JavaScript:
   <div x-show="status === 'loading'">Loading events…</div>
   <div x-show="status === 'error'">Unable to load events.</div>
   <div
-    x-show="status === 'empty' || (status === 'ready' && upcomingRows('Date', 'School').length === 0)"
+    x-show="status === 'empty' || (status === 'ready' && upcomingRows('Date', 'School Name').length === 0)"
   >
     No upcoming events found.
   </div>
 
   <div x-show="status === 'ready'">
     <!-- Put x-for directly on the visible Webflow card; the bridge creates the template. -->
-    <div x-for="row in upcomingRows('Date', 'School')" class="events_card">
+    <div x-for="row in upcomingRows('Date', 'School Name')" class="events_card">
       <div x-text="dateParts(row['Date'])?.weekday"></div>
       <div x-text="dateParts(row['Date'])?.day"></div>
       <div x-text="dateParts(row['Date'])?.monthYear"></div>
-      <h3 x-text="row['School'] || 'TBC'"></h3>
+      <h3 x-text="row['School Name'] || 'TBC'"></h3>
       <div x-show="row['Region']" x-text="row['Region']"></div>
       <div x-show="row['Time']" x-text="row['Time']"></div>
-      <div x-show="row['Info']" x-text="row['Info']"></div>
+      <div x-show="row['Additional Info']" x-text="row['Additional Info']"></div>
       <a
-        x-show="registration(row['Register']).kind !== 'none'"
-        x-bind:href="registration(row['Register']).href"
-        x-text="registration(row['Register']).label"
+        x-show="registration(row['How to Register']).kind !== 'none'"
+        x-bind:href="registration(row['How to Register']).href"
+        x-text="registration(row['How to Register']).label"
       ></a>
-      <a x-show="websiteUrl(row['Website'])" x-bind:href="websiteUrl(row['Website'])"
+      <a
+        x-show="websiteUrl(row['School Website'])"
+        x-bind:href="websiteUrl(row['School Website'])"
         >Go to website</a
       >
     </div>
