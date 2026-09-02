@@ -35,18 +35,20 @@ export function getEventDateRange(event: APIResponse): string {
   const days = event.days_of_week.length ? ` (${event.days_of_week.join(', ')})` : '';
 
   if (isMultiDayEvent(event) && event.class_schedule) {
-    const start = window.dayjs
-      .tz(event.class_schedule.first_session.starts_at, DEFAULT_TIMEZONE)
+    const start = window
+      .dayjs(event.class_schedule.first_session.starts_at)
+      .tz(DEFAULT_TIMEZONE)
       .format('MMM D');
-    const end = window.dayjs
-      .tz(event.class_schedule.final_session.starts_at, DEFAULT_TIMEZONE)
+    const end = window
+      .dayjs(event.class_schedule.final_session.starts_at)
+      .tz(DEFAULT_TIMEZONE)
       .format('MMM D');
     return `${start} - ${end}${days}`;
   }
 
   if (!event.starts_at) return 'On demand';
 
-  return window.dayjs.tz(event.starts_at, DEFAULT_TIMEZONE).format('MMM D') + days;
+  return window.dayjs(event.starts_at).tz(DEFAULT_TIMEZONE).format('MMM D') + days;
 }
 
 export function getTimeRange(
@@ -57,13 +59,13 @@ export function getTimeRange(
   if (!start) return '';
 
   const timeFormat = 'h:mm A';
-  const startTime = window.dayjs.tz(start, DEFAULT_TIMEZONE).format(timeFormat);
-  const endTime = end ? window.dayjs.tz(end, DEFAULT_TIMEZONE).format(timeFormat) : null;
+  const startTime = window.dayjs(start).tz(DEFAULT_TIMEZONE).format(timeFormat);
+  const endTime = end ? window.dayjs(end).tz(DEFAULT_TIMEZONE).format(timeFormat) : null;
   const range = endTime ? `${startTime} - ${endTime}` : startTime;
 
   if (!includeTimeZone) return range;
 
-  return `${range} (${window.dayjs.tz(start, DEFAULT_TIMEZONE).format('z')})`;
+  return `${range} (${window.dayjs(start).tz(DEFAULT_TIMEZONE).format('z')})`;
 }
 
 /**
