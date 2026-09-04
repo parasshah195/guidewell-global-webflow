@@ -128,8 +128,11 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 - [x] Phase 2 — card Component definitions rewired: `x-text` on name/date/time/price/location, `x-bind:href` on CTA, `x-show` on ET + proctored badges, view-more/moreLoading/depleted controls.
 - [x] Phase 3 — three list roots → `eventList` instances: in-person (`query-is_online="false"`, `data-group-by="location"`), online (`query-is_online="true"`), on-demand stripped to static. State ComponentInstances wrapped in `x-show` divs (`status === 'loading'`/`'empty'`/`'error'`/`'ready'`).
 - [x] Phase 4 — build gate: `bun run build` ✅ + `bun test` (3/3) ✅
-- [ ] **Live verify** (needs deploy + browser): events render, groups show per location, filter reactivity, state transitions, view-more. Deferred until the page goes live.
-- [ ] Wire test-filter CMS radios (DynamoList `testsRadioGroup`) — needs CMS field name for value binding; deferred.
+- [x] **Live verify** (needs deploy + browser): events render, groups show per location, filter reactivity, state transitions, view-more. Confirmed 2026-09-04.
+- [x] Wire test-filter radios in Webflow as **manual HTML radios** (not CMS / DynamoList).
+      Each radio: `x-model="$store.filters.tests"`, `data-filter="tests"`, `value` = exact
+      `TEST_TOPIC_IDS` key (`SAT`, `ACT`, `AP Biology`, …). JS already maps that string → `topics`.
+      Confirmed wired in the Webflow DOM (2026-09-04).
 
 ### 10. Live verification (needs real API_BASE slug + topic IDs — PRD §10, §12 steps 4–6)
 
@@ -137,11 +140,15 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
       `https://guidewelleducation.onecanoe.com/api/gwg/public/v2` (matches Summit's
       `/api/{project}/public/v2` pattern, `gwg` in place of `summit`).
 - [x] Fill `TEST_TOPIC_IDS` from GWG — confirmed 2026-07-16 (user-supplied). Full mapping in `src/constants.ts`.
-- [ ] On GWG staging: `setScriptMode('local')`, place an `eventList` + `x-for` template → events render.
-- [ ] Bind a filter UI to `$store.filters` + a `data-use-filters` list → filtering re-queries (once,
+- [x] On GWG staging: `setScriptMode('local')`, place an `eventList` + `x-for` template → events render.
+      Confirmed 2026-09-04.
+- [x] Bind a filter UI to `$store.filters` + a `data-use-filters` list → filtering re-queries (once,
       debounced); URL syncs; reload restores; `reset()` clears in place (no page reload).
-- [ ] Confirm `status` (`loading`/`error`/`empty`/`ready`) + `depleted` states (CSV #10); exactly one block shows.
-- [ ] Practice Tests: `data-group-by="location"` → in-person groups first, online last, per-group price note.
+      Confirmed 2026-09-04.
+- [x] Confirm `status` (`loading`/`error`/`empty`/`ready`) + `depleted` states (CSV #10); exactly one block shows.
+      Confirmed 2026-09-04.
+- [x] Practice Tests: `data-group-by="location"` → in-person groups first, online last, per-group price note.
+      Confirmed 2026-09-04.
 
 ---
 
@@ -174,10 +181,10 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
       `startAlpine(['university-fair-events'])`.
 - [x] **Verify:** `bun test`, `bunx tsc --noEmit`, and `bun run build`; confirm
       `dist/prod/components/university-fair-events.js` is emitted.
-- [ ] **Live verify:** published CSV loads on GWG staging; upcoming cards sort correctly; optional
+- [x] **Live verify:** published CSV loads on GWG staging; upcoming cards sort correctly; optional
       fields/buttons and loading/empty/error states render from Webflow bindings.
       Transport verified 2026-07-26: published URL returns CSV with CORS `*`; parser read the 10
-      live headers, 27 rows, and 7 upcoming rows. Webflow staging render remains.
+      live headers, 27 rows, and 7 upcoming rows. Staging bind confirmed 2026-09-04.
 
 ### Handover (CSV #11)
 
