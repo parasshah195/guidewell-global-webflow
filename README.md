@@ -172,6 +172,7 @@ attributes on the element carrying `x-data="eventList"` (its root — read via `
 | `query-category`               | `['marketing_event']` | `category`          |
 | `query-topics`                 | `[134, 49]`           | `topics` (test IDs) |
 | `query-limit`                  | `12`                  | `limit`             |
+| `query-start`                  | `3`                   | initial `start` offset (`viewMore` increments from here) |
 | `query-is_online`              | `true`                | `is_online`         |
 | `query-location_id`            | `5`                   | `location_id`       |
 | `query-before` / `query-after` | `2026-09-01`          | date range          |
@@ -185,12 +186,13 @@ attributes on the element carrying `x-data="eventList"` (its root — read via `
 | `data-group-by`       | `location` \| (absent) | `location`: exposes `groups` (in-person first, then Online, then Online (On Demand)), each with a `priceSummary`. Absent: flat `events` list. |
 | `data-use-filters`    | present / absent       | Subscribes to the `filters` store; re-queries (debounced) on change.                                                                          |
 | `data-topics-exclude` | `SAT,ACT`              | Drops events whose topics intersect this list.                                                                                                |
+| `data-tag-images`     | present / absent       | Matches `event.tags` to the page CMS bank (`[data-el="tag-images"]`). Use `tagImage(event).src` / `.alt` on the card img.                     |
 
 Template state: `events`, `groups`, `status` (`'loading' | 'error' | 'empty' | 'ready'` — bind
 exactly one block per value, e.g. `x-show="status === 'error'"`), plus `depleted` / `moreLoading`
 (apply only while `ready`). Helpers: `dateRange(event)`, `timeRange(start, end)`,
 `price(event)`, `isProctored(event)` (badge an event as proctored — reads its `'Proctored'` tag; there's no
-`proctored` field on the API), `viewMore()`. A `filters.proctored` toggle (below) sends
+`proctored` field on the API), `tagImage(event)` (CMS tag image when `data-tag-images` is set), `viewMore()`. A `filters.proctored` toggle (below) sends
 `tags: ['Proctored']` as a real, server-side-filtered request param — confirmed the API filters
 `tags` correctly, so this doesn't fetch-then-filter (which would break pagination/"load more").
 
@@ -212,6 +214,21 @@ exactly one block per value, e.g. `x-show="status === 'error'"`), plus `depleted
   >
     View more
   </button>
+</div>
+```
+
+**Webinars tag images:** put a hidden CMS collection list once on the page (not inside `eventList`)
+with `data-el="tag-images"`. Each img needs `data-tag` (or Summit's `tag_name`) matching an event
+tag. List roots add `data-tag-images`. Bind the card image and clear srcset so Webflow doesn't
+override:
+
+```html
+<div data-el="tag-images" hidden>
+  <!-- CMS collection list of tag images -->
+  <img src="…" alt="…" data-tag="SAT Prep" />
+</div>
+<div x-data="eventList" query-category="['marketing_event']" query-limit="3" data-tag-images>
+  <!-- card img: x-bind:src="tagImage(event).src" x-bind:alt="tagImage(event).alt" srcset="" sizes="" -->
 </div>
 ```
 

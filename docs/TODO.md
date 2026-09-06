@@ -82,7 +82,7 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
       `is_online`). `query()` builds `apiBody = { ...baseParams, ...applyFilters(store), start, limit }`
       fresh each call and sets `status` along its branches. `init()` with `data-use-filters` wraps the
       re-query in an `Alpine.effect` with a **~200ms trailing debounce** (date range = two inputs → one
-      fetch, not two). Read attrs from `this.$root`. **Don't** port slider/blog-shuffle/tag-image code.
+      fetch, not two). Read attrs from `this.$root`. **Don't** port slider/blog-shuffle code.
 - (No `filter-form.ts` — the filter UI binds directly to `$store.filters`; behaviour lives in the store, step 5.)
 - **Verify:** `bun run build` emits `dist/prod/components/event-list.js`, no errors. ✅
 
@@ -103,9 +103,9 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
       `isProctored`, `isMultiDayEvent`, `getEventDateRange`, `getTimeRange`, and the two
       transforms extracted from `eventList` — `buildQueryFromFilters` (topic-ID mapping,
       location, dates, proctored tag) and `groupEventsByLocation` (bucketing/rank/price).
-- [x] dayjs global for tests: `src/dayjs-setup.ts` (shared with `entry.ts`) preloaded via
-      `bunfig.toml` so `window.dayjs` resolves in `bun test`.
-- **Verify:** `bun test` passes (21/21). ✅
+- [x] `src/utils/tag-images.test.ts` (`bun:test`): CMS bank indexing (`data-tag` / `tag_name`) +
+      `pickTagImage` (first matching tag, injected random).
+- **Verify:** `bun test` passes (30/30). ✅
 - **Gate:** `bun test` runs before build (`"build": "bun test && …"`) and before merge
   (`.github/workflows/ci.yml`, `on: pull_request` + `push: dev`). ✅
 - **Production CI (planned — see PRD §13):** current gate is temporary (build is local,
@@ -128,8 +128,11 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 - [x] Phase 2 — card Component definitions rewired: `x-text` on name/date/time/price/location, `x-bind:href` on CTA, `x-show` on ET + proctored badges, view-more/moreLoading/depleted controls.
 - [x] Phase 3 — three list roots → `eventList` instances: in-person (`query-is_online="false"`, `data-group-by="location"`), online (`query-is_online="true"`), on-demand stripped to static. State ComponentInstances wrapped in `x-show` divs (`status === 'loading'`/`'empty'`/`'error'`/`'ready'`).
 - [x] Phase 4 — build gate: `bun run build` ✅ + `bun test` (3/3) ✅
-- [ ] **Live verify** (needs deploy + browser): events render, groups show per location, filter reactivity, state transitions, view-more. Deferred until the page goes live.
-- [ ] Wire test-filter CMS radios (DynamoList `testsRadioGroup`) — needs CMS field name for value binding; deferred.
+- [x] **Live verify** (needs deploy + browser): events render, groups show per location, filter reactivity, state transitions, view-more. Confirmed 2026-09-04.
+- [x] Wire test-filter radios in Webflow as **manual HTML radios** (not CMS / DynamoList).
+      Each radio: `x-model="$store.filters.tests"`, `data-filter="tests"`, `value` = exact
+      `TEST_TOPIC_IDS` key (`SAT`, `ACT`, `AP Biology`, …). JS already maps that string → `topics`.
+      Confirmed wired in the Webflow DOM (2026-09-04).
 
 ### 10. Live verification (needs real API_BASE slug + topic IDs — PRD §10, §12 steps 4–6)
 
@@ -137,11 +140,27 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
       `https://guidewelleducation.onecanoe.com/api/gwg/public/v2` (matches Summit's
       `/api/{project}/public/v2` pattern, `gwg` in place of `summit`).
 - [x] Fill `TEST_TOPIC_IDS` from GWG — confirmed 2026-07-16 (user-supplied). Full mapping in `src/constants.ts`.
-- [ ] On GWG staging: `setScriptMode('local')`, place an `eventList` + `x-for` template → events render.
-- [ ] Bind a filter UI to `$store.filters` + a `data-use-filters` list → filtering re-queries (once,
+- [x] On GWG staging: `setScriptMode('local')`, place an `eventList` + `x-for` template → events render.
+      Confirmed 2026-09-04.
+- [x] Bind a filter UI to `$store.filters` + a `data-use-filters` list → filtering re-queries (once,
       debounced); URL syncs; reload restores; `reset()` clears in place (no page reload).
-- [ ] Confirm `status` (`loading`/`error`/`empty`/`ready`) + `depleted` states (CSV #10); exactly one block shows.
-- [ ] Practice Tests: `data-group-by="location"` → in-person groups first, online last, per-group price note.
+      Confirmed 2026-09-04.
+- [x] Confirm `status` (`loading`/`error`/`empty`/`ready`) + `depleted` states (CSV #10); exactly one block shows.
+      Confirmed 2026-09-04.
+- [x] Practice Tests: `data-group-by="location"` → in-person groups first, online last, per-group price note.
+      Confirmed 2026-09-04.
+
+### 10b. Webinars tag images (CSV #8)
+
+- [x] `src/utils/tag-images.ts`: `collectTagImages` + `pickTagImage` (CMS-in-DOM bank, not the API).
+- [x] `eventList`: opt in via `data-tag-images`; cache picks per event id; `tagImage(event)` helper.
+      Image bank is page-level `[data-el="tag-images"]` (shared by Featured + Upcoming).
+- [x] Spec/docs: PRD §5–§8, README attribute contract, TODO.
+- [ ] **Webflow:** hidden CMS collection with `data-el="tag-images"`; `data-tag` (or existing
+      `tag_name`) on imgs; `data-tag-images` on Featured + Upcoming roots; bind
+      `x-bind:src="tagImage(event).src"` / `alt`; empty `srcset`/`sizes`.
+- [ ] **Live verify** on staging: tags match CMS; image stable across re-renders; lists without
+      `data-tag-images` unchanged.
 
 ---
 
@@ -174,10 +193,10 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
       `startAlpine(['university-fair-events'])`.
 - [x] **Verify:** `bun test`, `bunx tsc --noEmit`, and `bun run build`; confirm
       `dist/prod/components/university-fair-events.js` is emitted.
-- [ ] **Live verify:** published CSV loads on GWG staging; upcoming cards sort correctly; optional
+- [x] **Live verify:** published CSV loads on GWG staging; upcoming cards sort correctly; optional
       fields/buttons and loading/empty/error states render from Webflow bindings.
       Transport verified 2026-07-26: published URL returns CSV with CORS `*`; parser read the 10
-      live headers, 27 rows, and 7 upcoming rows. Webflow staging render remains.
+      live headers, 27 rows, and 7 upcoming rows. Staging bind confirmed 2026-09-04.
 
 ### Handover (CSV #11)
 
