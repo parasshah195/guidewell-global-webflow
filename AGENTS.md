@@ -178,4 +178,5 @@ page's `startAlpine([...])` call. New top-level entry files (like `alpine.ts`) m
 ## Source-of-truth docs
 - [`docs/PRD.md`](docs/PRD.md) — full spec (scope, architecture, attribute contract, signatures, config, verification).
 - [`docs/TODO.md`](docs/TODO.md) — phased execution checklist; keep checkboxes in sync with progress.
+- [`docs/NOTION_HANDOVER.md`](docs/NOTION_HANDOVER.md) — how to write team/client Notion notes for a live page (visitor UX + Designer DOM).
 - [OneCanoe API - Developer Deliverables (GWG tab)](https://docs.google.com/spreadsheets/d/1jCIdOuANaxrA-ZHoqxykYlWVpfF8si_XiViMWUDDcc4/edit?gid=1510450912) — team task inventory for large/CSV-level work; skip strikethrough and `n/a`.
