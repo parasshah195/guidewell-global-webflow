@@ -153,6 +153,7 @@ number (`12`), date (`2026-07-01`), boolean (`true`/`false`), array (`['SAT','AC
 | `query-category`               | `['marketing_event']` | `category`          |
 | `query-topics`                 | `[134, 49]`           | `topics` (test IDs) |
 | `query-limit`                  | `12`                  | `limit`             |
+| `query-start`                  | `3`                   | initial pagination offset; `viewMore()` increments from here |
 | `query-is_online`              | `true`                | `is_online`         |
 | `query-location_id`            | `5`                   | `location_id`       |
 | `query-before` / `query-after` | `2026-09-01`          | date range          |
@@ -360,7 +361,7 @@ export function getFiltersStore(): FiltersStore; // window.Alpine.store(FILTERS_
 - `init()`: `setEventQueryFromAttr(this.$root, this)` → fills `baseParams`. If `data-use-filters` →
   `Alpine.effect(() => { readFiltersStore(); debouncedReload() })` (effect tracks the store; ~200ms
   trailing debounce so a two-input date range / rapid toggles = one fetch). Else `reload()` once.
-- `reload()`: `start = 0`, `events = []`, `tagImages = {}`, `depleted = false`, `status = 'loading'`, then `query()`.
+- `reload()`: `start = baseParams.start ?? 0` (so `query-start` is the initial offset), `events = []`, `tagImages = {}`, `depleted = false`, `status = 'loading'`, then `query()`.
 - `query()`: build `apiBody = { ...baseParams, ...applyFilters(getFiltersStore()), start, limit }`;
   `fetchEvents(apiBody)`; on `null` → `status = 'error'`; else filter excluded topics, dedupe
   against shown, push; if `data-tag-images`, `collectTagImages(document)` + `pickTagImage` per new

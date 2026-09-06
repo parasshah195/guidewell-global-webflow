@@ -172,6 +172,7 @@ attributes on the element carrying `x-data="eventList"` (its root — read via `
 | `query-category`               | `['marketing_event']` | `category`          |
 | `query-topics`                 | `[134, 49]`           | `topics` (test IDs) |
 | `query-limit`                  | `12`                  | `limit`             |
+| `query-start`                  | `3`                   | initial `start` offset (`viewMore` increments from here) |
 | `query-is_online`              | `true`                | `is_online`         |
 | `query-location_id`            | `5`                   | `location_id`       |
 | `query-before` / `query-after` | `2026-09-01`          | date range          |

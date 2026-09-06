@@ -92,7 +92,7 @@ window.addEventListener('alpine:init', () => {
       },
 
       reload() {
-        this.start = 0;
+        this.start = this.baseParams.start ?? 0;
         this.events = [];
         this.tagImages = {};
         this.depleted = false;
