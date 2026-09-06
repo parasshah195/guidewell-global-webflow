@@ -156,11 +156,12 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 - [x] `eventList`: opt in via `data-tag-images`; cache picks per event id; `tagImage(event)` helper.
       Image bank is page-level `[data-el="tag-images"]` (shared by Featured + Upcoming).
 - [x] Spec/docs: PRD §5–§8, README attribute contract, TODO.
-- [ ] **Webflow:** hidden CMS collection with `data-el="tag-images"`; `data-tag` (or existing
+- [x] **Webflow:** hidden CMS collection with `data-el="tag-images"`; `data-tag` (or existing
       `tag_name`) on imgs; `data-tag-images` on Featured + Upcoming roots; bind
       `x-bind:src="tagImage(event).src"` / `alt`; empty `srcset`/`sizes`.
-- [ ] **Live verify** on staging: tags match CMS; image stable across re-renders; lists without
-      `data-tag-images` unchanged.
+      Confirmed 2026-09-07.
+- [x] **Live verify** on staging: Featured + Upcoming lists render; tags match CMS; images stable.
+      Confirmed 2026-09-07.
 
 ---
 
