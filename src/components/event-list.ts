@@ -19,6 +19,7 @@ import {
   groupEventsByLocation,
   isProctored,
 } from '$utils/event-format';
+import { collectTagImages, EMPTY_TAG_IMAGE, pickTagImage, type TagImage } from '$utils/tag-images';
 
 type Status = 'loading' | 'error' | 'empty' | 'ready';
 
@@ -43,6 +44,8 @@ interface EventListState {
   dateRange(event: APIResponse): string;
   timeRange(start: string | null, end?: string | null): string;
   isProctored(event: APIResponse): boolean;
+  tagImages: Record<number, TagImage>;
+  tagImage(event: APIResponse): TagImage;
 }
 
 window.addEventListener('alpine:init', () => {
@@ -57,6 +60,7 @@ window.addEventListener('alpine:init', () => {
       moreLoading: false,
       events: [],
       start: 0,
+      tagImages: {},
 
       init() {
         setEventQueryFromAttr(this.$root, this);
@@ -68,7 +72,15 @@ window.addEventListener('alpine:init', () => {
             const f = getFiltersStore();
             // Alpine tracks references, not values: reset() reassigns empty arrays, so guard on a
             // value signature to skip no-op refetches (nothing actually changed)
-            const sig = JSON.stringify([f.tests, f.location, f.dateAfter, f.dateBefore, f.extendedTime, f.daysOfWeek, f.proctored]);
+            const sig = JSON.stringify([
+              f.tests,
+              f.location,
+              f.dateAfter,
+              f.dateBefore,
+              f.extendedTime,
+              f.daysOfWeek,
+              f.proctored,
+            ]);
             if (sig === lastSig) return;
             lastSig = sig;
             clearTimeout(debounceTimer);
@@ -82,6 +94,7 @@ window.addEventListener('alpine:init', () => {
       reload() {
         this.start = 0;
         this.events = [];
+        this.tagImages = {};
         this.depleted = false;
         this.status = 'loading';
         this.query();
@@ -108,6 +121,17 @@ window.addEventListener('alpine:init', () => {
         const fresh = filtered.filter((e) => !existingIds.has(e.id));
 
         this.events = [...this.events, ...fresh];
+
+        if ('tagImages' in this.$root.dataset) {
+          const bank = collectTagImages(document);
+          const next = { ...this.tagImages };
+          for (const event of fresh) {
+            const picked = pickTagImage(event.tags, bank);
+            if (picked) next[event.id] = picked;
+          }
+          this.tagImages = next;
+        }
+
         this.status = this.events.length ? 'ready' : 'empty';
         // ponytail: naive depleted heuristic (fewer results than asked for) — good enough until
         // dedup against `is_online` near-duplicates starves it; switch to a server `has_more` flag if so.
@@ -161,6 +185,10 @@ window.addEventListener('alpine:init', () => {
 
       isProctored(event) {
         return isProctored(event);
+      },
+
+      tagImage(event) {
+        return this.tagImages[event.id] ?? EMPTY_TAG_IMAGE;
       },
     } as AlpineComponent<EventListState>;
   });

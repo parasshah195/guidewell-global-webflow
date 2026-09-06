@@ -82,7 +82,7 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
       `is_online`). `query()` builds `apiBody = { ...baseParams, ...applyFilters(store), start, limit }`
       fresh each call and sets `status` along its branches. `init()` with `data-use-filters` wraps the
       re-query in an `Alpine.effect` with a **~200ms trailing debounce** (date range = two inputs → one
-      fetch, not two). Read attrs from `this.$root`. **Don't** port slider/blog-shuffle/tag-image code.
+      fetch, not two). Read attrs from `this.$root`. **Don't** port slider/blog-shuffle code.
 - (No `filter-form.ts` — the filter UI binds directly to `$store.filters`; behaviour lives in the store, step 5.)
 - **Verify:** `bun run build` emits `dist/prod/components/event-list.js`, no errors. ✅
 
@@ -103,9 +103,9 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
       `isProctored`, `isMultiDayEvent`, `getEventDateRange`, `getTimeRange`, and the two
       transforms extracted from `eventList` — `buildQueryFromFilters` (topic-ID mapping,
       location, dates, proctored tag) and `groupEventsByLocation` (bucketing/rank/price).
-- [x] dayjs global for tests: `src/dayjs-setup.ts` (shared with `entry.ts`) preloaded via
-      `bunfig.toml` so `window.dayjs` resolves in `bun test`.
-- **Verify:** `bun test` passes (21/21). ✅
+- [x] `src/utils/tag-images.test.ts` (`bun:test`): CMS bank indexing (`data-tag` / `tag_name`) +
+      `pickTagImage` (first matching tag, injected random).
+- **Verify:** `bun test` passes (30/30). ✅
 - **Gate:** `bun test` runs before build (`"build": "bun test && …"`) and before merge
   (`.github/workflows/ci.yml`, `on: pull_request` + `push: dev`). ✅
 - **Production CI (planned — see PRD §13):** current gate is temporary (build is local,
@@ -149,6 +149,18 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
       Confirmed 2026-09-04.
 - [x] Practice Tests: `data-group-by="location"` → in-person groups first, online last, per-group price note.
       Confirmed 2026-09-04.
+
+### 10b. Webinars tag images (CSV #8)
+
+- [x] `src/utils/tag-images.ts`: `collectTagImages` + `pickTagImage` (CMS-in-DOM bank, not the API).
+- [x] `eventList`: opt in via `data-tag-images`; cache picks per event id; `tagImage(event)` helper.
+      Image bank is page-level `[data-el="tag-images"]` (shared by Featured + Upcoming).
+- [x] Spec/docs: PRD §5–§8, README attribute contract, TODO.
+- [ ] **Webflow:** hidden CMS collection with `data-el="tag-images"`; `data-tag` (or existing
+      `tag_name`) on imgs; `data-tag-images` on Featured + Upcoming roots; bind
+      `x-bind:src="tagImage(event).src"` / `alt`; empty `srcset`/`sizes`.
+- [ ] **Live verify** on staging: tags match CMS; image stable across re-renders; lists without
+      `data-tag-images` unchanged.
 
 ---
 

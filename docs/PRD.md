@@ -53,7 +53,7 @@ to the start value for the start-before-end constraint. (Summit used EasePick; d
 
 - The `QueryAPI` **abstract class + `EventQuery` subclass** → collapse to one `fetchEvents()` function. One endpoint, one function.
 - Six near-identical list components (`eventsList`, `filterEventsOnline`, `filterEventsOnlineOnDemand`, `filterEventsLocations`, `psatPathwaysEvents`, `sbwEvents`) → **one** generic `eventList`.
-- Blog-post shuffling, Webflow slider re-init, webinar tag-image randomisation (Summit `events-list.ts`) → add later **only** if a specific GWG page needs it.
+- Blog-post shuffling and Webflow slider re-init (Summit `events-list.ts`) → add later **only** if a specific GWG page needs it. Webinar tag images are in scope (CMS-in-DOM, not the API) — see §6 `data-tag-images`.
 - Per-page stores, per-campaign thank-you/form components → not in Phase 1.
 
 ---
@@ -125,7 +125,7 @@ sheet to OneCanoe's `APIResponse` or reuse `eventList`.
 | 1     | Events API across pages             | `eventList` instances with different `query-*` attrs per page.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | 6     | Practice Tests page + filters       | Mock Tests (v2) page uses **three separate `eventList` instances**: in-person (`query-is_online="false"` + `data-group-by="location"` → `groups` loop per location + `priceSummary`), online-live (`query-is_online="true"` → flat `events` loop), on-demand (static content — not independently queryable from the API). All with `data-use-filters`. Filter UI bound directly to the `filters` store (tests, location radios, date range via two native date inputs, ET, days, **proctored**). State shown via `x-show="status === '...'"` on wrapper divs around each ComponentInstance. |
 | 7     | Group Classes (SAT only)            | `eventList` with `query-category="['class']"` + SAT `query-topics`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| 8     | Webinars page                       | Two `eventList` instances: Featured (limit 3) + Upcoming (date-sorted). Tag images deferred.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| 8     | Webinars page                       | Two `eventList` instances: Featured (limit 3) + Upcoming (date-sorted). Both opt in with `data-tag-images`; one page-level CMS image bank (`data-el="tag-images"`) matched on event `tags`.                                                                                                                                                                                                                                                                                                                                                                                                  |
 | 10    | Testing / edge cases                | `status` (`loading`/`error`/`empty`/`ready`) + `depleted`/`moreLoading` states on `eventList`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | 3     | Combination sliders (blog + events) | Deferred — "nice to have, not a priority."                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | 2     | University Fairs                    | `universityFairEvents`: published CSV → dynamic Alpine `columns`/`rows`; Webflow renders the cards.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
@@ -166,6 +166,7 @@ number (`12`), date (`2026-07-01`), boolean (`true`/`false`), array (`['SAT','AC
 | `data-group-by`       | `location` \| (absent) | `location`: expose `groups` (in-person locations first, then `Online`, then `Online (On Demand)`), each with a `priceSummary`. Absent: flat `events` list. |
 | `data-use-filters`    | present / absent       | Subscribe to the `filters` store; re-query on change.                                                                                                      |
 | `data-topics-exclude` | `SAT,ACT`              | Drop events whose topics intersect this list.                                                                                                              |
+| `data-tag-images`     | present / absent       | After each fetch, match `event.tags` to CMS `<img>`s in the page bank (`[data-el="tag-images"]`). Exposes `tagImage(event)` → `{ src, alt }` (cached per event id). Absent: helper returns empty strings. |
 
 ### Component state exposed to the template
 
@@ -174,7 +175,17 @@ number (`12`), date (`2026-07-01`), boolean (`true`/`false`), array (`['SAT','AC
 `x-show="status === 'error'"` etc.; no contradictory/limbo combos), plus the orthogonal sub-flags
 `depleted` and `moreLoading` (apply only while `ready`). Helpers: `dateRange(event)`,
 `timeRange(start, end)`, `isProctored(event)` (reads the `'Proctored'` tag — for a per-event badge;
-see §10), `viewMore()`.
+see §10), `tagImage(event)` (`{ src, alt }` from the CMS bank when `data-tag-images` is set),
+`viewMore()`.
+
+**Tag images (Webinars — CMS in the DOM, not the API):** OneCanoe has no image fields. Put a hidden
+Webflow CMS collection list **once on the page** (not inside an `eventList` root) with
+`data-el="tag-images"`. Each `<img>` carries `data-tag` equal to a OneCanoe tag string (Summit's
+`tag_name` is also accepted so migrated CMS items work). Featured and Upcoming lists both set
+`data-tag-images` and share that bank. Bind the card image with `x-bind:src="tagImage(event).src"`
+and `x-bind:alt="tagImage(event).alt"`; leave `srcset` and `sizes` empty so Webflow responsive
+images don't override. The pick is: first event tag that has images, then one image from that tag
+(cached — not re-rolled on Alpine re-render).
 
 ### Filter UI bindings (Webflow → `filters` store)
 
@@ -245,6 +256,8 @@ src/
     event-attrs.ts        # setEventQueryFromAttr() + parseAttrValue() (exported, tested)
     event-attrs.test.ts   # bun:test — parser type coercion
     event-format.ts       # date/time/price helpers — uses GLOBAL dayjs (not imported) + filterExcludedTopics()
+    tag-images.ts         # collectTagImages() + pickTagImage() (CMS bank → { src, alt })
+    tag-images.test.ts    # bun:test — bank indexing + pick / random injection
   types/
     global.d.ts           # EDIT: window.Alpine, window.startAlpine, window.dayjs (+ global dayjs)
     alpine.ts             # AlpineComponent<T> ThisType helper for typing `this`
@@ -287,6 +300,16 @@ export function applyVAT(price: string): string; // ex-VAT string -> VAT-inclusi
 export function filterExcludedTopics(el: HTMLElement, events: APIResponse[]): APIResponse[];
 // Deferred (port only when a page renders them): getDays() "Weekly (Mon, Tue)",
 // getTimings() "Mornings/Afternoons", getTestsList() "SAT, ACT" — no Phase-1 page uses these.
+
+// utils/tag-images.ts  — CMS-in-DOM bank; eventList caches picks when `data-tag-images` is set
+export type TagImage = { src: string; alt: string };
+export const EMPTY_TAG_IMAGE: TagImage;
+export function collectTagImages(root: ParentNode): Map<string, TagImage[]>;
+export function pickTagImage(
+  tags: string[],
+  bank: Map<string, TagImage[]>,
+  random?: () => number
+): TagImage | null;
 
 // components/university-fair-events.ts — all production behavior stays in this one file.
 export function parseSheetCsv(csv: string): { columns: string[]; rows: Record<string, string>[] };
@@ -337,10 +360,11 @@ export function getFiltersStore(): FiltersStore; // window.Alpine.store(FILTERS_
 - `init()`: `setEventQueryFromAttr(this.$root, this)` → fills `baseParams`. If `data-use-filters` →
   `Alpine.effect(() => { readFiltersStore(); debouncedReload() })` (effect tracks the store; ~200ms
   trailing debounce so a two-input date range / rapid toggles = one fetch). Else `reload()` once.
-- `reload()`: `start = 0`, `events = []`, `depleted = false`, `status = 'loading'`, then `query()`.
+- `reload()`: `start = 0`, `events = []`, `tagImages = {}`, `depleted = false`, `status = 'loading'`, then `query()`.
 - `query()`: build `apiBody = { ...baseParams, ...applyFilters(getFiltersStore()), start, limit }`;
   `fetchEvents(apiBody)`; on `null` → `status = 'error'`; else filter excluded topics, dedupe
-  against shown, push; `status = events.length ? 'ready' : 'empty'`; if returned `< limit` → `depleted`.
+  against shown, push; if `data-tag-images`, `collectTagImages(document)` + `pickTagImage` per new
+  event into `tagImages[id]`; `status = events.length ? 'ready' : 'empty'`; if returned `< limit` → `depleted`.
 - `viewMore()`: `moreLoading = true`, bump `start += limit`, `query()` (append), `moreLoading = false`.
 - `applyFilters(f): Partial<QueryParams>` — **pure mapper, no mutation.** tests→`topics` (via
   `TEST_TOPIC_IDS`), location→`is_online` (`both` → omit key entirely), `dateAfter`/`dateBefore`

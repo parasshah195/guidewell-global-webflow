@@ -27,13 +27,19 @@ OneCanoe org and solves the same problems. Consult it for working patterns — b
    update the PRD in the same change — don't let them drift.
 2. **The TODO is the plan of record.** [`docs/TODO.md`](docs/TODO.md) is an ordered, phased
    checklist. Work through it in order.
-3. **Mirror TODO items into tasks, and check them off.** When you start a TODO step, create a task
+3. **The deliverables sheet is the large-task inventory.** When scoping or discussing CSV-level
+   work (Events API, pages, filters, handover — not a single TODO checkbox), read the **GWG** tab
+   of [OneCanoe API - Developer Deliverables](https://docs.google.com/spreadsheets/d/1jCIdOuANaxrA-ZHoqxykYlWVpfF8si_XiViMWUDDcc4/edit?gid=1510450912).
+   Rows marked strikethrough or `n/a` are out of scope. Other tabs (ESM, ATS, Summit, Campaigns)
+   and rows assigned to other people are not ours unless asked. The sheet often has links and
+   comments that the PRD/TODO summarise — use it when a large task needs extra context.
+4. **Mirror TODO items into tasks, and check them off.** When you start a TODO step, create a task
    (TaskCreate) for it and mark it `in_progress`; when it's done **and its verify passes**, mark the
    task `completed` **and tick the matching `- [ ]` → `- [x]` in `docs/TODO.md`**. The checkboxes are
    the durable progress record across sessions; the task list is the in-session view. Keep them in sync.
-4. **Don't mark anything done on a failing verify.** Each TODO group ends with a verify step
+5. **Don't mark anything done on a failing verify.** Each TODO group ends with a verify step
    (`bun run build`, `bun test`, etc.). Green before checked.
-5. **Confirm the open items, don't guess.** API slug, topic IDs, and the API's `proctored`/VAT
+6. **Confirm the open items, don't guess.** API slug, topic IDs, and the API's `proctored`/VAT
    behaviour are unknown (PRD §10). They block *live* verification, not foundation work — leave the
    `constants.ts` placeholders until GWG confirms.
 
@@ -101,7 +107,8 @@ Current branch is `dev`; do feature work off `dev`, PR into `main`.
 - **One API function:** `fetchEvents(params)` in `src/api/events.ts`. No class hierarchy.
 - **One generic component:** `eventList` covers every events feed; behaviour is set by `query-*`
   (API params) and `data-*` (display) attributes read off `this.$root`. See the **attribute contract**
-  in PRD §6 — that's the public API Webflow authors use.
+  in PRD §6 — that's the public API Webflow authors use. Webinar cards opt in to CMS tag images with
+  `data-tag-images` + a page-level `[data-el="tag-images"]` bank (not the Events API).
 - **One shared store:** `filters` (PRD §8). Lists opt in via `data-use-filters`. `filterForm` binds the
   Webflow filter UI to it and mirrors it to the URL (shareable/bookmarkable).
 
@@ -169,3 +176,4 @@ page's `startAlpine([...])` call. New top-level entry files (like `alpine.ts`) m
 ## Source-of-truth docs
 - [`docs/PRD.md`](docs/PRD.md) — full spec (scope, architecture, attribute contract, signatures, config, verification).
 - [`docs/TODO.md`](docs/TODO.md) — phased execution checklist; keep checkboxes in sync with progress.
+- [OneCanoe API - Developer Deliverables (GWG tab)](https://docs.google.com/spreadsheets/d/1jCIdOuANaxrA-ZHoqxykYlWVpfF8si_XiViMWUDDcc4/edit?gid=1510450912) — team task inventory for large/CSV-level work; skip strikethrough and `n/a`.
