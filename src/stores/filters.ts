@@ -8,7 +8,6 @@ export interface FiltersStore {
   extendedTime: boolean;
   daysOfWeek: string[];
   proctored: boolean;
-  showOnDemandEvents: boolean;
   init(): void;
   reset(): void;
   resetDays(): void;
@@ -26,7 +25,6 @@ const QUERY_KEYS: Record<FilterField, string> = {
   extendedTime: 'et',
   daysOfWeek: 'days',
   proctored: 'proctored',
-  showOnDemandEvents: 'on-demand',
 };
 
 function getQueryParam(param: string): string {
@@ -51,7 +49,6 @@ export function registerFiltersStore(): void {
     extendedTime: false,
     daysOfWeek: [],
     proctored: false,
-    showOnDemandEvents: false,
 
     init() {
       // Precedence (increasing): store default (the literals above) < HTML `checked` on registered
@@ -91,10 +88,6 @@ export function registerFiltersStore(): void {
           { param: QUERY_KEYS.extendedTime, value: this.extendedTime ? 'true' : null },
           // daysOfWeek is intentionally not URL-synced (HTML default only) — noisy in the query string
           { param: QUERY_KEYS.proctored, value: this.proctored ? 'true' : null },
-          {
-            param: QUERY_KEYS.showOnDemandEvents,
-            value: this.showOnDemandEvents ? 'true' : null,
-          },
         ]);
       });
     },
@@ -107,7 +100,6 @@ export function registerFiltersStore(): void {
       this.extendedTime = false;
       this.daysOfWeek = [];
       this.proctored = false;
-      this.showOnDemandEvents = false;
     },
 
     // Select every day — derives the full set from the rendered checkboxes so there's no day list
