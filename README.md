@@ -252,6 +252,12 @@ behavioral `filters` store (`src/stores/filters.ts`):
 The store hydrates from the URL once on load, then mirrors changes back to the URL (shareable/
 bookmarkable filters). Any `eventList` with `data-use-filters` re-queries automatically.
 
+The static on-demand block on Mock Tests (v2) uses
+`x-show="$store.filters.location !== 'in-person' && $store.filters.filterOnDemandRows($el)"`.
+The store shows matching cards and hides the block when none match. Each `[data-event-row]` gets
+its test name from `data-test` (an exact filter value) or its `[data-event-name]` text. Date,
+weekday, ET, and proctored filters do not apply to on-demand tests.
+
 ### `eventCodeSearch` — find event by code
 
 Redirects to the matching event's page, or exposes `isError` for a Webflow-authored error message:

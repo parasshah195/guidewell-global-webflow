@@ -133,6 +133,10 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
       Each radio: `x-model="$store.filters.tests"`, `data-filter="tests"`, `value` = exact
       `TEST_TOPIC_IDS` key (`SAT`, `ACT`, `AP Biology`, …). JS already maps that string → `topics`.
       Confirmed wired in the Webflow DOM (2026-09-04).
+- [x] On-demand static cards respond to location and test name: hide the block for in-person
+      or no matching visible row, and show matching rows for any test name. Date, weekday, ET,
+      and proctored filters do not apply. Webflow block uses one `x-show` binding;
+      `bun test`, type-check, and build pass.
 
 ### 10. Live verification (needs real API_BASE slug + topic IDs — PRD §10, §12 steps 4–6)
 

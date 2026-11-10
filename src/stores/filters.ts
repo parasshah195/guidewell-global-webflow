@@ -11,11 +11,18 @@ export interface FiltersStore {
   init(): void;
   reset(): void;
   resetDays(): void;
+  filterOnDemandRows(root: HTMLElement): boolean;
 }
 
 export const FILTERS_STORE = 'filters';
 
-type FilterField = keyof Omit<FiltersStore, 'init' | 'reset' | 'resetDays'>;
+export function matchesOnDemandTest(name: string, test: string): boolean {
+  return !test || name === test || name.startsWith(`${test} `);
+}
+
+const onDemandRowDisplay = new WeakMap<HTMLElement, { original: string; visible: boolean }>();
+
+type FilterField = keyof Omit<FiltersStore, 'init' | 'reset' | 'resetDays' | 'filterOnDemandRows'>;
 
 const QUERY_KEYS: Record<FilterField, string> = {
   tests: 'tests',
@@ -108,6 +115,28 @@ export function registerFiltersStore(): void {
       this.daysOfWeek = [
         ...document.querySelectorAll<HTMLInputElement>('[data-filter="daysOfWeek"]'),
       ].map((i) => i.value);
+    },
+
+    filterOnDemandRows(root) {
+      const test = this.tests;
+      let hasMatch = false;
+      root.querySelectorAll<HTMLElement>('[data-event-row]').forEach((row) => {
+        let display = onDemandRowDisplay.get(row);
+        if (!display) {
+          const style = getComputedStyle(row);
+          display = {
+            original: row.style.display,
+            visible: !row.hidden && style.display !== 'none' && style.visibility === 'visible',
+          };
+          onDemandRowDisplay.set(row, display);
+        }
+        const name =
+          row.dataset.test || row.querySelector('[data-event-name]')?.textContent?.trim() || '';
+        const matches = matchesOnDemandTest(name, test);
+        row.style.display = matches ? display.original : 'none';
+        if (display.visible && matches) hasMatch = true;
+      });
+      return hasMatch;
     },
   } as FiltersStore);
 }
