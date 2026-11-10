@@ -17,7 +17,12 @@ export interface FiltersStore {
 export const FILTERS_STORE = 'filters';
 
 export function matchesOnDemandTest(name: string, test: string): boolean {
-  return !test || name === test || name.startsWith(`${test} `);
+  if (!test) return true;
+  const isWord = (c: string | undefined) => !!c && /[A-Za-z0-9]/.test(c);
+  for (let i = name.indexOf(test); i !== -1; i = name.indexOf(test, i + 1)) {
+    if (!isWord(name[i - 1]) && !isWord(name[i + test.length])) return true;
+  }
+  return false;
 }
 
 const onDemandRowDisplay = new WeakMap<HTMLElement, { original: string; visible: boolean }>();

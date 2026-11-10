@@ -7,6 +7,8 @@ test('on-demand test names match the selected test without matching another name
   expect(matchesOnDemandTest('ACT Practice Test', 'ACT')).toBe(true);
   expect(matchesOnDemandTest('SAT Practice Test', 'ACT')).toBe(false);
   expect(matchesOnDemandTest('SHSAT Practice Test', 'SAT')).toBe(false);
+  expect(matchesOnDemandTest('SSAT Practice Test', 'SAT')).toBe(false);
+  expect(matchesOnDemandTest('Free SAT Practice Test', 'SAT')).toBe(true);
   expect(matchesOnDemandTest('AP Biology', 'AP')).toBe(true);
   expect(matchesOnDemandTest('AP Biology', 'AP Biology')).toBe(true);
   expect(
