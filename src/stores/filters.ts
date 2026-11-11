@@ -11,7 +11,6 @@ export interface FiltersStore {
   init(): void;
   reset(): void;
   resetDays(): void;
-  filterOnDemandRows(root: HTMLElement): boolean;
 }
 
 export const FILTERS_STORE = 'filters';
@@ -25,9 +24,19 @@ export function matchesOnDemandTest(name: string, test: string): boolean {
   return false;
 }
 
-const onDemandRowDisplay = new WeakMap<HTMLElement, { original: string; visible: boolean }>();
+// Static on-demand cards live in the Webflow markup, not the API: hide the rows whose name
+// doesn't match the selected test. The block itself stays visible either way.
+const ON_DEMAND_ROW = '[data-event-row].is-on-demand';
 
-type FilterField = keyof Omit<FiltersStore, 'init' | 'reset' | 'resetDays' | 'filterOnDemandRows'>;
+function filterOnDemandRows(test: string): void {
+  document.querySelectorAll<HTMLElement>(ON_DEMAND_ROW).forEach((row) => {
+    const name =
+      row.dataset.test || row.querySelector('[data-event-name]')?.textContent?.trim() || '';
+    row.style.display = matchesOnDemandTest(name, test) ? '' : 'none';
+  });
+}
+
+type FilterField = keyof Omit<FiltersStore, 'init' | 'reset' | 'resetDays'>;
 
 const QUERY_KEYS: Record<FilterField, string> = {
   tests: 'tests',
@@ -91,6 +100,19 @@ export function registerFiltersStore(): void {
         }
       });
 
+      window.Alpine.effect(() => filterOnDemandRows(this.tests));
+      // The cards are rendered by Alpine after init, so re-apply when they appear.
+      new MutationObserver((records) => {
+        const added = records.some((r) =>
+          [...r.addedNodes].some(
+            (n) =>
+              n instanceof HTMLElement &&
+              (n.matches(ON_DEMAND_ROW) || n.querySelector(ON_DEMAND_ROW))
+          )
+        );
+        if (added) filterOnDemandRows(this.tests);
+      }).observe(document.body, { childList: true, subtree: true });
+
       window.Alpine.effect(() => {
         setQueryParams([
           { param: QUERY_KEYS.tests, value: this.tests || null },
@@ -120,28 +142,6 @@ export function registerFiltersStore(): void {
       this.daysOfWeek = [
         ...document.querySelectorAll<HTMLInputElement>('[data-filter="daysOfWeek"]'),
       ].map((i) => i.value);
-    },
-
-    filterOnDemandRows(root) {
-      const test = this.tests;
-      let hasMatch = false;
-      root.querySelectorAll<HTMLElement>('[data-event-row]').forEach((row) => {
-        let display = onDemandRowDisplay.get(row);
-        if (!display) {
-          const style = getComputedStyle(row);
-          display = {
-            original: row.style.display,
-            visible: !row.hidden && style.display !== 'none' && style.visibility === 'visible',
-          };
-          onDemandRowDisplay.set(row, display);
-        }
-        const name =
-          row.dataset.test || row.querySelector('[data-event-name]')?.textContent?.trim() || '';
-        const matches = matchesOnDemandTest(name, test);
-        row.style.display = matches ? display.original : 'none';
-        if (display.visible && matches) hasMatch = true;
-      });
-      return hasMatch;
     },
   } as FiltersStore);
 }

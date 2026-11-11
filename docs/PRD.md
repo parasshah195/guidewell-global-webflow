@@ -345,7 +345,6 @@ export interface FiltersStore {
   toggleTest(test: string): void;
   toggleDay(day: string): void;
   reset(): void; // zero all fields IN PLACE — never window.location.reload()
-  filterOnDemandRows(root: HTMLElement): boolean; // filter static rows; true if any visible row matches
   // internal: syncUrl() via setQueryParams; getQueryParam/setQueryParams live here (ported subset,
   // were utils/query-params.ts — folded in as this is the only consumer).
 }
@@ -439,10 +438,9 @@ then starts (guarded on `DOMContentLoaded`).
   `practice_test_event`, not `'practice_test'` (that string is only valid for the _request_
   `category` filter; see `EventType` vs `QueryParamsCategories` in `api/types.ts`).
 - On-demand practice tests aren't part of the events API at all — GWG's Mock Tests page has
-  static cards with `on_demand=<id>` registration links. Its block uses
-  `x-show="$store.filters.location !== 'in-person' && $store.filters.filterOnDemandRows($el)"`.
-  The method matches the selected test against each row's `data-test` value or visible
-  `[data-event-name]` text, and returns false when no visible card matches.
+  static cards (`[data-event-row].is-on-demand`) with `on_demand=<id>` registration links. The
+  `filters` store hides cards whose `[data-event-name]` text (or `data-test`) doesn't contain the
+  selected test as a whole word, re-applying when Alpine renders them.
 
 **Still to confirm with GWG/OneCanoe (do not block foundation work):**
 
