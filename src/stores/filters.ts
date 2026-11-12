@@ -10,6 +10,7 @@ export interface FiltersStore {
   extendedTime: boolean;
   daysOfWeek: string[];
   proctored: boolean;
+  onDemandVisible: number;
   init(): void;
   restoreAnchor(): void;
   reset(): void;
@@ -29,17 +30,21 @@ export function matchesOnDemandTest(name: string, test: string): boolean {
 
 // Static on-demand cards live in the Webflow markup, not the API: hide the rows whose name
 // doesn't match the selected test. The block itself stays visible either way.
-const ON_DEMAND_ROW = '[data-event-row].is-on-demand';
+const ON_DEMAND_ROW = '[data-on-demand-row]';
 
-function filterOnDemandRows(test: string): void {
+function filterOnDemandRows(test: string): number {
+  let visible = 0;
   document.querySelectorAll<HTMLElement>(ON_DEMAND_ROW).forEach((row) => {
     const name =
       row.dataset.test || row.querySelector('[data-event-name]')?.textContent?.trim() || '';
-    row.style.display = matchesOnDemandTest(name, test) ? '' : 'none';
+    const show = matchesOnDemandTest(name, test);
+    row.style.display = show ? '' : 'none';
+    if (show) visible++;
   });
+  return visible;
 }
 
-type FilterField = keyof Omit<FiltersStore, 'init' | 'restoreAnchor' | 'reset' | 'resetDays'>;
+type FilterField = keyof Omit<FiltersStore, 'onDemandVisible' | 'init' | 'restoreAnchor' | 'reset' | 'resetDays'>;
 
 const QUERY_KEYS: Record<FilterField, string> = {
   tests: 'tests',
@@ -79,6 +84,7 @@ export function registerFiltersStore(): void {
     extendedTime: false,
     daysOfWeek: [],
     proctored: false,
+    onDemandVisible: 0,
 
     init() {
       // Precedence (increasing): store default (the literals above) < HTML `checked` on registered
@@ -128,7 +134,9 @@ export function registerFiltersStore(): void {
         window.addEventListener(type, release, { passive: true })
       );
 
-      window.Alpine.effect(() => filterOnDemandRows(this.tests));
+      window.Alpine.effect(() => {
+        this.onDemandVisible = filterOnDemandRows(this.tests);
+      });
       // The cards are rendered by Alpine after init, so re-apply when they appear.
       new MutationObserver((records) => {
         const added = records.some((r) =>
@@ -138,7 +146,7 @@ export function registerFiltersStore(): void {
               (n.matches(ON_DEMAND_ROW) || n.querySelector(ON_DEMAND_ROW))
           )
         );
-        if (added) filterOnDemandRows(this.tests);
+        if (added) this.onDemandVisible = filterOnDemandRows(this.tests);
       }).observe(document.body, { childList: true, subtree: true });
 
       window.Alpine.effect(() => {
