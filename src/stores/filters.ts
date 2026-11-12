@@ -30,7 +30,7 @@ export function matchesOnDemandTest(name: string, test: string): boolean {
 
 // Static on-demand cards live in the Webflow markup, not the API: hide the rows whose name
 // doesn't match the selected test. The block itself stays visible either way.
-const ON_DEMAND_ROW = '[data-event-row].is-on-demand';
+const ON_DEMAND_ROW = '[data-on-demand-row]';
 
 function filterOnDemandRows(test: string): number {
   let visible = 0;

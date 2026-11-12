@@ -256,8 +256,8 @@ Put `data-filter-anchor` on the blocks that should stay put while filters re-ren
 in-person list, the on-demand block). The store keeps the first marked block in view at the same
 screen position until the visitor scrolls.
 
-The static on-demand cards on Mock Tests (v2) need no attributes beyond `data-event-row` on a row
-with the `is-on-demand` class. The store hides rows whose `[data-event-name]` text (or `data-test`)
+The static on-demand cards on Mock Tests (v2) need no attributes beyond `data-on-demand-row` on each
+row. The store hides rows whose `[data-event-name]` text (or `data-test`)
 doesn't contain the selected test as a whole word (`SAT` never matches `SSAT`). The block itself
 stays visible; use `x-show="$store.filters.location !== 'in-person'"` on it if desired. Date,
 weekday, ET, and proctored filters do not apply to on-demand tests.

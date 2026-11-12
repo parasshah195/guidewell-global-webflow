@@ -438,7 +438,7 @@ then starts (guarded on `DOMContentLoaded`).
   `practice_test_event`, not `'practice_test'` (that string is only valid for the _request_
   `category` filter; see `EventType` vs `QueryParamsCategories` in `api/types.ts`).
 - On-demand practice tests aren't part of the events API at all — GWG's Mock Tests page has
-  static cards (`[data-event-row].is-on-demand`) with `on_demand=<id>` registration links. The
+  static cards (`[data-on-demand-row]`) with `on_demand=<id>` registration links. The
   `filters` store hides cards whose `[data-event-name]` text (or `data-test`) doesn't contain the
   selected test as a whole word, re-applying when Alpine renders them.
 

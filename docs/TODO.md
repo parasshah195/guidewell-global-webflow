@@ -133,7 +133,7 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
       Each radio: `x-model="$store.filters.tests"`, `data-filter="tests"`, `value` = exact
       `TEST_TOPIC_IDS` key (`SAT`, `ACT`, `AP Biology`, …). JS already maps that string → `topics`.
       Confirmed wired in the Webflow DOM (2026-09-04).
-- [x] On-demand static cards (`[data-event-row].is-on-demand`) are filtered by the selected test
+- [x] On-demand static cards (`[data-on-demand-row]`) are filtered by the selected test
       name as a whole word (no `x-show` needed; `SSAT` ≠ `SAT`). The block stays visible. Date,
       weekday, ET, and proctored filters do not apply. Verified on staging with local bundles
       for `?tests=SAT`, `?tests=ACT` and no filter.
