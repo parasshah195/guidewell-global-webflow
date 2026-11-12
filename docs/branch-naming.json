@@ -1,0 +1,26 @@
+{
+  "spec": "Conventional Branch",
+  "version": "1.1.0",
+  "source": "https://conventionalbranch.org/v1.1.0/spec.json",
+  "license": "CC-BY-4.0",
+  "separator": "/",
+  "trunkBranches": ["main", "master", "develop", "dev"],
+  "types": [
+    { "type": "feature", "aliases": ["feat"], "category": "purpose", "description": "New features" },
+    { "type": "bugfix", "aliases": ["fix"], "category": "purpose", "description": "Bug fixes" },
+    { "type": "hotfix", "aliases": [], "category": "purpose", "description": "Urgent production fixes" },
+    { "type": "release", "aliases": [], "category": "purpose", "description": "Release preparation" },
+    { "type": "chore", "aliases": [], "category": "purpose", "description": "Non-code tasks (dependencies, docs, config)" }
+  ],
+  "rules": {
+    "case": "lowercase",
+    "descriptionAllowedCharacters": ["a-z", "0-9", "-", "."],
+    "noConsecutiveSeparators": true,
+    "noLeadingOrTrailingSeparators": true,
+    "notes": "Purpose prefixes only. Hyphens separate words; dots may represent versions. dev is a project trunk branch. grammar.regex is the validator."
+  },
+  "grammar": {
+    "abnf": "branch-name = trunk-branch / prefixed-branch\ntrunk-branch = \"main\" / \"master\" / \"develop\" / \"dev\"\nprefixed-branch = type \"/\" description\ntype = \"feature\" / \"feat\" / \"bugfix\" / \"fix\" / \"hotfix\" / \"release\" / \"chore\"\ndescription = desc-segment *(\"-\" desc-segment)\ndesc-segment = 1*(ALPHA / DIGIT) *(\".\" 1*(ALPHA / DIGIT))\nALPHA = %x61-7A\nDIGIT = %x30-39",
+    "regex": "^(?:main|master|develop|dev|(?:feature|feat|bugfix|fix|hotfix|release|chore)/[a-z0-9]+(?:\\.[a-z0-9]+)*(?:-[a-z0-9]+(?:\\.[a-z0-9]+)*)*)$"
+  }
+}

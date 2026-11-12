@@ -1,3 +1,5 @@
+import { holdAnchor } from '$utils/scroll-anchor';
+
 export type FilterLocation = 'online' | 'in-person' | 'both';
 
 export interface FiltersStore {
@@ -8,15 +10,36 @@ export interface FiltersStore {
   extendedTime: boolean;
   daysOfWeek: string[];
   proctored: boolean;
-  showOnDemandEvents: boolean;
   init(): void;
+  restoreAnchor(): void;
   reset(): void;
   resetDays(): void;
 }
 
 export const FILTERS_STORE = 'filters';
 
-type FilterField = keyof Omit<FiltersStore, 'init' | 'reset' | 'resetDays'>;
+export function matchesOnDemandTest(name: string, test: string): boolean {
+  if (!test) return true;
+  const isWord = (c: string | undefined) => !!c && /[A-Za-z0-9]/.test(c);
+  for (let i = name.indexOf(test); i !== -1; i = name.indexOf(test, i + 1)) {
+    if (!isWord(name[i - 1]) && !isWord(name[i + test.length])) return true;
+  }
+  return false;
+}
+
+// Static on-demand cards live in the Webflow markup, not the API: hide the rows whose name
+// doesn't match the selected test. The block itself stays visible either way.
+const ON_DEMAND_ROW = '[data-event-row].is-on-demand';
+
+function filterOnDemandRows(test: string): void {
+  document.querySelectorAll<HTMLElement>(ON_DEMAND_ROW).forEach((row) => {
+    const name =
+      row.dataset.test || row.querySelector('[data-event-name]')?.textContent?.trim() || '';
+    row.style.display = matchesOnDemandTest(name, test) ? '' : 'none';
+  });
+}
+
+type FilterField = keyof Omit<FiltersStore, 'init' | 'restoreAnchor' | 'reset' | 'resetDays'>;
 
 const QUERY_KEYS: Record<FilterField, string> = {
   tests: 'tests',
@@ -26,7 +49,6 @@ const QUERY_KEYS: Record<FilterField, string> = {
   extendedTime: 'et',
   daysOfWeek: 'days',
   proctored: 'proctored',
-  showOnDemandEvents: 'on-demand',
 };
 
 function getQueryParam(param: string): string {
@@ -43,6 +65,12 @@ function setQueryParams(records: { param: string; value: string | null }[]): voi
 }
 
 export function registerFiltersStore(): void {
+  // Keeps the section the visitor is looking at in place while filtered lists re-render.
+  let restore = () => {};
+  const release = () => {
+    restore = () => {};
+  };
+
   window.Alpine.store(FILTERS_STORE, {
     tests: '',
     location: 'both',
@@ -51,7 +79,6 @@ export function registerFiltersStore(): void {
     extendedTime: false,
     daysOfWeek: [],
     proctored: false,
-    showOnDemandEvents: false,
 
     init() {
       // Precedence (increasing): store default (the literals above) < HTML `checked` on registered
@@ -82,6 +109,38 @@ export function registerFiltersStore(): void {
         }
       });
 
+      // Registered before any effect that changes layout, so it measures the pre-change page.
+      window.Alpine.effect(() => {
+        void [
+          this.tests,
+          this.location,
+          this.dateAfter,
+          this.dateBefore,
+          this.extendedTime,
+          [...this.daysOfWeek],
+          this.proctored,
+        ];
+        restore = holdAnchor();
+        requestAnimationFrame(() => restore());
+      });
+      // The visitor taking over scrolling ends the hold.
+      ['wheel', 'touchmove', 'keydown'].forEach((type) =>
+        window.addEventListener(type, release, { passive: true })
+      );
+
+      window.Alpine.effect(() => filterOnDemandRows(this.tests));
+      // The cards are rendered by Alpine after init, so re-apply when they appear.
+      new MutationObserver((records) => {
+        const added = records.some((r) =>
+          [...r.addedNodes].some(
+            (n) =>
+              n instanceof HTMLElement &&
+              (n.matches(ON_DEMAND_ROW) || n.querySelector(ON_DEMAND_ROW))
+          )
+        );
+        if (added) filterOnDemandRows(this.tests);
+      }).observe(document.body, { childList: true, subtree: true });
+
       window.Alpine.effect(() => {
         setQueryParams([
           { param: QUERY_KEYS.tests, value: this.tests || null },
@@ -91,12 +150,12 @@ export function registerFiltersStore(): void {
           { param: QUERY_KEYS.extendedTime, value: this.extendedTime ? 'true' : null },
           // daysOfWeek is intentionally not URL-synced (HTML default only) — noisy in the query string
           { param: QUERY_KEYS.proctored, value: this.proctored ? 'true' : null },
-          {
-            param: QUERY_KEYS.showOnDemandEvents,
-            value: this.showOnDemandEvents ? 'true' : null,
-          },
         ]);
       });
+    },
+
+    restoreAnchor() {
+      restore();
     },
 
     reset() {
@@ -107,7 +166,6 @@ export function registerFiltersStore(): void {
       this.extendedTime = false;
       this.daysOfWeek = [];
       this.proctored = false;
-      this.showOnDemandEvents = false;
     },
 
     // Select every day — derives the full set from the rendered checkboxes so there's no day list

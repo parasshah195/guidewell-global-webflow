@@ -133,6 +133,10 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
       Each radio: `x-model="$store.filters.tests"`, `data-filter="tests"`, `value` = exact
       `TEST_TOPIC_IDS` key (`SAT`, `ACT`, `AP Biology`, …). JS already maps that string → `topics`.
       Confirmed wired in the Webflow DOM (2026-09-04).
+- [x] On-demand static cards (`[data-event-row].is-on-demand`) are filtered by the selected test
+      name as a whole word (no `x-show` needed; `SSAT` ≠ `SAT`). The block stays visible. Date,
+      weekday, ET, and proctored filters do not apply. Verified on staging with local bundles
+      for `?tests=SAT`, `?tests=ACT` and no filter.
 
 ### 10. Live verification (needs real API_BASE slug + topic IDs — PRD §10, §12 steps 4–6)
 
@@ -156,11 +160,12 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
 - [x] `eventList`: opt in via `data-tag-images`; cache picks per event id; `tagImage(event)` helper.
       Image bank is page-level `[data-el="tag-images"]` (shared by Featured + Upcoming).
 - [x] Spec/docs: PRD §5–§8, README attribute contract, TODO.
-- [ ] **Webflow:** hidden CMS collection with `data-el="tag-images"`; `data-tag` (or existing
+- [x] **Webflow:** hidden CMS collection with `data-el="tag-images"`; `data-tag` (or existing
       `tag_name`) on imgs; `data-tag-images` on Featured + Upcoming roots; bind
       `x-bind:src="tagImage(event).src"` / `alt`; empty `srcset`/`sizes`.
-- [ ] **Live verify** on staging: tags match CMS; image stable across re-renders; lists without
-      `data-tag-images` unchanged.
+      Confirmed 2026-09-07.
+- [x] **Live verify** on staging: Featured + Upcoming lists render; tags match CMS; images stable.
+      Confirmed 2026-09-07.
 
 ---
 

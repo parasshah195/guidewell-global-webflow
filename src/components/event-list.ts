@@ -32,6 +32,7 @@ interface EventListState {
   start: number;
   init(): void;
   reload(): void;
+  keepPlace(): void;
   query(): Promise<void>;
   viewMore(): void;
   applyFilters(f: FiltersStore): Partial<QueryParams>;
@@ -97,7 +98,13 @@ window.addEventListener('alpine:init', () => {
         this.tagImages = {};
         this.depleted = false;
         this.status = 'loading';
-        this.query();
+        this.keepPlace();
+        this.query().finally(() => this.keepPlace());
+      },
+
+      keepPlace() {
+        if (!('useFilters' in this.$root.dataset)) return;
+        requestAnimationFrame(() => getFiltersStore().restoreAnchor());
       },
 
       async query() {
