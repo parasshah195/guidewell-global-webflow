@@ -97,7 +97,15 @@ window.addEventListener('alpine:init', () => {
         this.tagImages = {};
         this.depleted = false;
         this.status = 'loading';
-        this.query();
+        // The loading state collapses the list, which shortens the page and makes the browser
+        // clamp the scroll position to the footer. Hold the old height until results render.
+        const root = this.$root;
+        root.style.minHeight = `${root.offsetHeight}px`;
+        this.query().finally(() =>
+          requestAnimationFrame(() => {
+            root.style.minHeight = '';
+          })
+        );
       },
 
       async query() {
