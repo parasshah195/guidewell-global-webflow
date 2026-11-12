@@ -262,6 +262,10 @@ doesn't contain the selected test as a whole word (`SAT` never matches `SSAT`). 
 stays visible; use `x-show="$store.filters.location !== 'in-person'"` on it if desired. Date,
 weekday, ET, and proctored filters do not apply to on-demand tests.
 
+`$store.filters.onDemandVisible` is the number of on-demand rows currently shown. To hide the whole
+online list when it has nothing to show but on-demand cards exist, put this on the online
+`eventList` root: `x-show="!(['empty','error'].includes(status) && $store.filters.onDemandVisible > 0)"`.
+
 ### `eventCodeSearch` — find event by code
 
 Redirects to the matching event's page, or exposes `isError` for a Webflow-authored error message:
