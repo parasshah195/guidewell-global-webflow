@@ -32,6 +32,7 @@ interface EventListState {
   start: number;
   init(): void;
   reload(): void;
+  keepPlace(): void;
   query(): Promise<void>;
   viewMore(): void;
   applyFilters(f: FiltersStore): Partial<QueryParams>;
@@ -97,15 +98,13 @@ window.addEventListener('alpine:init', () => {
         this.tagImages = {};
         this.depleted = false;
         this.status = 'loading';
-        // The loading state collapses the list, which shortens the page and makes the browser
-        // clamp the scroll position to the footer. Hold the old height until results render.
-        const root = this.$root;
-        root.style.minHeight = `${root.offsetHeight}px`;
-        this.query().finally(() =>
-          requestAnimationFrame(() => {
-            root.style.minHeight = '';
-          })
-        );
+        this.keepPlace();
+        this.query().finally(() => this.keepPlace());
+      },
+
+      keepPlace() {
+        if (!('useFilters' in this.$root.dataset)) return;
+        requestAnimationFrame(() => getFiltersStore().restoreAnchor());
       },
 
       async query() {

@@ -1,3 +1,5 @@
+import { holdAnchor } from '$utils/scroll-anchor';
+
 export type FilterLocation = 'online' | 'in-person' | 'both';
 
 export interface FiltersStore {
@@ -9,6 +11,7 @@ export interface FiltersStore {
   daysOfWeek: string[];
   proctored: boolean;
   init(): void;
+  restoreAnchor(): void;
   reset(): void;
   resetDays(): void;
 }
@@ -36,7 +39,7 @@ function filterOnDemandRows(test: string): void {
   });
 }
 
-type FilterField = keyof Omit<FiltersStore, 'init' | 'reset' | 'resetDays'>;
+type FilterField = keyof Omit<FiltersStore, 'init' | 'restoreAnchor' | 'reset' | 'resetDays'>;
 
 const QUERY_KEYS: Record<FilterField, string> = {
   tests: 'tests',
@@ -62,6 +65,12 @@ function setQueryParams(records: { param: string; value: string | null }[]): voi
 }
 
 export function registerFiltersStore(): void {
+  // Keeps the section the visitor is looking at in place while filtered lists re-render.
+  let restore = () => {};
+  const release = () => {
+    restore = () => {};
+  };
+
   window.Alpine.store(FILTERS_STORE, {
     tests: '',
     location: 'both',
@@ -100,6 +109,25 @@ export function registerFiltersStore(): void {
         }
       });
 
+      // Registered before any effect that changes layout, so it measures the pre-change page.
+      window.Alpine.effect(() => {
+        void [
+          this.tests,
+          this.location,
+          this.dateAfter,
+          this.dateBefore,
+          this.extendedTime,
+          [...this.daysOfWeek],
+          this.proctored,
+        ];
+        restore = holdAnchor();
+        requestAnimationFrame(() => restore());
+      });
+      // The visitor taking over scrolling ends the hold.
+      ['wheel', 'touchmove', 'keydown'].forEach((type) =>
+        window.addEventListener(type, release, { passive: true })
+      );
+
       window.Alpine.effect(() => filterOnDemandRows(this.tests));
       // The cards are rendered by Alpine after init, so re-apply when they appear.
       new MutationObserver((records) => {
@@ -124,6 +152,10 @@ export function registerFiltersStore(): void {
           { param: QUERY_KEYS.proctored, value: this.proctored ? 'true' : null },
         ]);
       });
+    },
+
+    restoreAnchor() {
+      restore();
     },
 
     reset() {
