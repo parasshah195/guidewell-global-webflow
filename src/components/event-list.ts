@@ -9,12 +9,13 @@ import type { FiltersStore } from '$stores/filters';
 import { getFiltersStore } from '$stores/filters';
 import type { AlpineComponent } from '$types/alpine';
 import { setEventQueryFromAttr } from '$utils/event-attrs';
-import type { EventGroup } from '$utils/event-format';
+import type { DateParts, EventGroup } from '$utils/event-format';
 import {
   applyLiveWindow,
   buildQueryFromFilters,
   filterExcludedTopics,
   filterNonLive,
+  getDateParts,
   getEventDateRange,
   getPriceSummary,
   getTimeRange,
@@ -45,6 +46,7 @@ interface EventListState {
   getTime(events: APIResponse[]): string;
   getTests(events: APIResponse[]): string;
   dateRange(event: APIResponse): string;
+  dateParts(value: string | null): DateParts | null;
   timeRange(start: string | null, end?: string | null): string;
   isProctored(event: APIResponse): boolean;
   tagImages: Record<number, TagImage>;
@@ -201,6 +203,10 @@ window.addEventListener('alpine:init', () => {
 
       dateRange(event) {
         return getEventDateRange(event);
+      },
+
+      dateParts(value) {
+        return getDateParts(value);
       },
 
       timeRange(start, end) {

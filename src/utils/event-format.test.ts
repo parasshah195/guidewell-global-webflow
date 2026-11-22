@@ -8,6 +8,7 @@ import {
   applyVAT,
   buildQueryFromFilters,
   filterNonLive,
+  getDateParts,
   getEventDateRange,
   getPriceSummary,
   getTimeRange,
@@ -212,6 +213,22 @@ test('getTimeRange appends a timezone abbreviation by default', () => {
 
 test('getTimeRange preserves an API timestamp offset', () => {
   expect(getTimeRange('2026-09-12T10:00:00+01:00', null, false)).toBe('10:00 AM');
+});
+
+test('getDateParts splits a timestamp into badge parts in London time', () => {
+  expect(getDateParts('2026-09-12T10:00:00+01:00')).toEqual({
+    weekday: 'Sat',
+    day: '12',
+    monthYear: 'Sep 2026',
+  });
+  // 23:30Z on 11 Jul is already 12 Jul in London (BST)
+  expect(getDateParts('2026-07-11T23:30:00Z')?.day).toBe('12');
+});
+
+test('getDateParts returns null for missing or invalid values', () => {
+  expect(getDateParts(null)).toBeNull();
+  expect(getDateParts('')).toBeNull();
+  expect(getDateParts('not a date')).toBeNull();
 });
 
 const NOW = new Date('2026-11-22T12:00:00Z');

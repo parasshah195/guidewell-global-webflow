@@ -51,6 +51,20 @@ export function getEventDateRange(event: APIResponse): string {
   return window.dayjs(event.starts_at).tz(DEFAULT_TIMEZONE).format('MMM D') + days;
 }
 
+export interface DateParts {
+  weekday: string;
+  day: string;
+  monthYear: string;
+}
+
+/** Calendar-badge pieces of one API timestamp in `DEFAULT_TIMEZONE`; `null` when absent. */
+export function getDateParts(value: string | null | undefined): DateParts | null {
+  if (!value) return null;
+  const date = window.dayjs(value).tz(DEFAULT_TIMEZONE);
+  if (!date.isValid()) return null;
+  return { weekday: date.format('ddd'), day: date.format('D'), monthYear: date.format('MMM YYYY') };
+}
+
 export function getTimeRange(
   start: string | null,
   end?: string | null,

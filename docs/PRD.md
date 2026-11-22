@@ -190,6 +190,7 @@ extra requests. Category doesn't matter — practice tests can be either.
 `status: 'loading' | 'error' | 'empty' | 'ready'` (exactly one full-screen UI block shows — bind
 `x-show="status === 'error'"` etc.; no contradictory/limbo combos), plus the orthogonal sub-flags
 `depleted` and `moreLoading` (apply only while `ready`). Helpers: `dateRange(event)`,
+`dateParts(isoTimestamp)` (`{ weekday, day, monthYear }` in London time, or `null` — for a calendar date badge; bind start and end separately, show the end badge with `x-show="event.ends_at"`),
 `timeRange(start, end)`, `isProctored(event)` (reads the `'Proctored'` tag — for a per-event badge;
 see §10), `tagImage(event)` (`{ src, alt }` from the CMS bank when `data-tag-images` is set),
 `viewMore()`.
