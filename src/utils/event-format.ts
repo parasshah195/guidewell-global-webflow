@@ -51,6 +51,27 @@ export function getEventDateRange(event: APIResponse): string {
   return window.dayjs(event.starts_at).tz(DEFAULT_TIMEZONE).format('MMM D') + days;
 }
 
+/**
+ * Card-safe description: the markdown intro before the first heading, as plain text with
+ * paragraphs separated by a blank line (render with `white-space: pre-line`).
+ */
+export function getDescriptionText(markdown: string | null | undefined): string {
+  if (!markdown) return '';
+  const intro = markdown.replace(/\r\n?/g, '\n').split(/^#{1,6}\s/m)[0];
+  return intro
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/(\*\*|__)(.+?)\1/gs, '$2')
+    .replace(/\*(?=\S)(.+?)(?<=\S)\*/g, '$1')
+    .replace(/(?<!\w)_(?=\S)(.+?)(?<=\S)_(?!\w)/g, '$1')
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/^[ \t]*(?:>|[-*+]|\d+\.)[ \t]+/gm, '')
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.replace(/\s*\n\s*/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n\n');
+}
+
 export interface DateParts {
   weekday: string;
   day: string;

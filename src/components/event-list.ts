@@ -16,6 +16,7 @@ import {
   filterExcludedTopics,
   filterNonLive,
   getDateParts,
+  getDescriptionText,
   getEventDateRange,
   getPriceSummary,
   getTimeRange,
@@ -47,6 +48,7 @@ interface EventListState {
   getTests(events: APIResponse[]): string;
   dateRange(event: APIResponse): string;
   dateParts(value: string | null): DateParts | null;
+  descriptionText(event: APIResponse): string;
   timeRange(start: string | null, end?: string | null): string;
   isProctored(event: APIResponse): boolean;
   tagImages: Record<number, TagImage>;
@@ -207,6 +209,10 @@ window.addEventListener('alpine:init', () => {
 
       dateParts(value) {
         return getDateParts(value);
+      },
+
+      descriptionText(event) {
+        return getDescriptionText(event.description);
       },
 
       timeRange(start, end) {

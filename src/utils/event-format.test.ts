@@ -9,6 +9,7 @@ import {
   buildQueryFromFilters,
   filterNonLive,
   getDateParts,
+  getDescriptionText,
   getEventDateRange,
   getPriceSummary,
   getTimeRange,
@@ -229,6 +230,25 @@ test('getDateParts returns null for missing or invalid values', () => {
   expect(getDateParts(null)).toBeNull();
   expect(getDateParts('')).toBeNull();
   expect(getDateParts('not a date')).toBeNull();
+});
+
+test('getDescriptionText keeps only the intro before the first heading, as plain paragraphs', () => {
+  const md =
+    "**Connect with students.** Guidewell's roadshow.\r\n\r\nLed by [Holly](https://x.test) _Smith_.\r\n\r\n### What's Included\r\n\r\n- **Mock Evening:** fun";
+  expect(getDescriptionText(md)).toBe(
+    "Connect with students. Guidewell's roadshow.\n\nLed by Holly Smith."
+  );
+});
+
+test('getDescriptionText joins soft-wrapped lines, drops list markers, keeps snake_case', () => {
+  expect(getDescriptionText('line one\nline two\n\n- item_one and event_code')).toBe(
+    'line one line two\n\nitem_one and event_code'
+  );
+});
+
+test('getDescriptionText returns empty for missing text or heading-only text', () => {
+  expect(getDescriptionText(null)).toBe('');
+  expect(getDescriptionText('### Only a heading\n\nbody')).toBe('');
 });
 
 const NOW = new Date('2026-11-22T12:00:00Z');
