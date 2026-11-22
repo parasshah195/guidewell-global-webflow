@@ -143,6 +143,20 @@ The component reads them off `this.$root` — **no `x-ref` needed**.
 Any `QueryParams` key, prefixed with `query-`. Value type is auto-detected:
 number (`12`), date (`2026-07-01`), boolean (`true`/`false`), array (`['SAT','ACT']` or `[134,49]`), else string.
 
+**Live vs on-demand (`query-live`).** Per Ryan (GWE backend, via Ashley Rose, 2026-09-16) there is no
+live/on-demand field: an event is **live** when it has a start date in the future; **on-demand** events
+have no start date or one in the past (registration is just re-opened afterwards). So `eventList`
+defaults to `live=true` and sends `after=<now>` (a user `after` can only move it later). Set
+`query-live="false"` for on-demand: it sends **no date bound** (a `before` would drop dateless rows
+server-side, and the team confirmed on-demand `starts_at`/`ends_at` can be `null`). `filterNonLive()` then
+keeps events with no start date or a past one **in code, before anything reaches Alpine**, and `query()`
+keeps pulling raw pages (advancing `start` by what the API returned) until a full page survives, so
+pagination and "view more" never see the discarded rows. `live` is stripped before the request
+(`applyLiveWindow()` in `event-format.ts`). **Unverified (2026-11-22):** the live API currently returns
+only upcoming events and no null-date rows; we need one real on-demand `event_code` from OneCanoe to
+confirm it returns them at all. Cost: upcoming events still occupy raw pages, so non-live may take
+extra requests. Category doesn't matter — practice tests can be either.
+
 > **Coercion ceiling (`parseAttrValue`):** detection is by string _shape_, not by target key. Edge:
 > an all-digit `event_code` would coerce to a number, and `Date.parse` is loose. Acceptable for the
 > current attrs; upgrade to per-key typed coercion (keyed off `QueryParamsProperties`) only if a
@@ -157,6 +171,7 @@ number (`12`), date (`2026-07-01`), boolean (`true`/`false`), array (`['SAT','AC
 | `query-is_online`              | `true`                | `is_online`         |
 | `query-location_id`            | `5`                   | `location_id`       |
 | `query-before` / `query-after` | `2026-09-01`          | date range          |
+| `query-live`                   | `false`               | **not an API param** — live/on-demand switch (below) |
 | `query-event_code`             | `EVT83DD6`            | `event_code`        |
 | `query-tags`                   | `['SAT Prep']`        | `tags`              |
 
@@ -175,6 +190,7 @@ number (`12`), date (`2026-07-01`), boolean (`true`/`false`), array (`['SAT','AC
 `status: 'loading' | 'error' | 'empty' | 'ready'` (exactly one full-screen UI block shows — bind
 `x-show="status === 'error'"` etc.; no contradictory/limbo combos), plus the orthogonal sub-flags
 `depleted` and `moreLoading` (apply only while `ready`). Helpers: `dateRange(event)`,
+`dateParts(isoTimestamp)` (`{ weekday, day, monthYear }` in London time, or `null` — for a calendar date badge; bind start and end separately, show the end badge with `x-show="event.ends_at"`),
 `timeRange(start, end)`, `isProctored(event)` (reads the `'Proctored'` tag — for a per-event badge;
 see §10), `tagImage(event)` (`{ src, alt }` from the CMS bank when `data-tag-images` is set),
 `viewMore()`.
@@ -437,7 +453,7 @@ then starts (guarded on `DOMContentLoaded`).
 - Response `type` values are `'class' | 'marketing_event' | 'practice_test_event'` — note
   `practice_test_event`, not `'practice_test'` (that string is only valid for the _request_
   `category` filter; see `EventType` vs `QueryParamsCategories` in `api/types.ts`).
-- On-demand practice tests aren't part of the events API at all — GWG's Mock Tests page has
+- On-demand practice tests aren't returned by the events API today (see `query-live` in §6) — GWG's Mock Tests page has
   static cards (`[data-on-demand-row]`) with `on_demand=<id>` registration links. The
   `filters` store hides cards whose `[data-event-name]` text (or `data-test`) doesn't contain the
   selected test as a whole word, re-applying when Alpine renders them.

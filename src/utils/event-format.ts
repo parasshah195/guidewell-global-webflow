@@ -2,8 +2,8 @@
  * Date/time/price formatting for events. Uses the GLOBAL `dayjs` (initialised once in entry.ts) —
  * never `import dayjs` here, so esbuild's multi-entry build doesn't duplicate the library (PRD §3.5).
  */
-import { DEFAULT_TIMEZONE, PROCTORED_TAG, TEST_TOPIC_IDS, VAT_MULTIPLIER } from '$constants';
 import type { APIResponse, QueryParams } from '$api/types';
+import { DEFAULT_TIMEZONE, PROCTORED_TAG, TEST_TOPIC_IDS, VAT_MULTIPLIER } from '$constants';
 import type { FiltersStore } from '$stores/filters';
 
 export interface EventGroup {
@@ -49,6 +49,20 @@ export function getEventDateRange(event: APIResponse): string {
   if (!event.starts_at) return 'On demand';
 
   return window.dayjs(event.starts_at).tz(DEFAULT_TIMEZONE).format('MMM D') + days;
+}
+
+export interface DateParts {
+  weekday: string;
+  day: string;
+  monthYear: string;
+}
+
+/** Calendar-badge pieces of one API timestamp in `DEFAULT_TIMEZONE`; `null` when absent. */
+export function getDateParts(value: string | null | undefined): DateParts | null {
+  if (!value) return null;
+  const date = window.dayjs(value).tz(DEFAULT_TIMEZONE);
+  if (!date.isValid()) return null;
+  return { weekday: date.format('ddd'), day: date.format('D'), monthYear: date.format('MMM YYYY') };
 }
 
 export function getTimeRange(
@@ -155,6 +169,26 @@ export function groupEventsByLocation(events: APIResponse[]): EventGroup[] {
     const events = buckets.get(name) ?? [];
     return { name, events, priceSummary: getPriceSummary(events) };
   });
+}
+
+/**
+ * Live = starts in the future (confirmed by Ryan, GWE backend, 2026-09-16: on-demand events have
+ * no start date or one in the past). Default live; `query-live="false"` selects on-demand.
+ * Strips the client-only `live` key. Live sends `after=<now>` (a user `after` can only move it
+ * later). Non-live sends no date bound: a `before` would drop dateless rows server-side, so
+ * `filterNonLive` selects them client-side instead.
+ */
+export function applyLiveWindow(params: QueryParams, now = new Date()): QueryParams {
+  const { live = true, ...rest } = params;
+  if (live && (!rest.after || new Date(rest.after) < now)) rest.after = now.toISOString();
+  return rest;
+}
+
+/**
+ * Non-live only: keeps events with no start date or one in the past.
+ */
+export function filterNonLive(events: APIResponse[], now = new Date()): APIResponse[] {
+  return events.filter((e) => !e.starts_at || new Date(e.starts_at) < now);
 }
 
 /**

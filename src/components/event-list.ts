@@ -9,10 +9,13 @@ import type { FiltersStore } from '$stores/filters';
 import { getFiltersStore } from '$stores/filters';
 import type { AlpineComponent } from '$types/alpine';
 import { setEventQueryFromAttr } from '$utils/event-attrs';
-import type { EventGroup } from '$utils/event-format';
+import type { DateParts, EventGroup } from '$utils/event-format';
 import {
+  applyLiveWindow,
   buildQueryFromFilters,
   filterExcludedTopics,
+  filterNonLive,
+  getDateParts,
   getEventDateRange,
   getPriceSummary,
   getTimeRange,
@@ -43,6 +46,7 @@ interface EventListState {
   getTime(events: APIResponse[]): string;
   getTests(events: APIResponse[]): string;
   dateRange(event: APIResponse): string;
+  dateParts(value: string | null): DateParts | null;
   timeRange(start: string | null, end?: string | null): string;
   isProctored(event: APIResponse): boolean;
   tagImages: Record<number, TagImage>;
@@ -109,23 +113,39 @@ window.addEventListener('alpine:init', () => {
 
       async query() {
         const limit = this.baseParams.limit ?? 12;
-        const apiBody: QueryParams = {
-          ...this.baseParams,
-          ...this.applyFilters(getFiltersStore()),
-          start: this.start,
-          limit,
-        };
-
-        const results = await fetchEvents(apiBody);
-
-        if (results === null) {
-          this.status = 'error';
-          return;
-        }
-
-        const filtered = filterExcludedTopics(this.$root, results);
+        const nonLive = this.baseParams.live === false;
         const existingIds = new Set(this.events.map((e) => e.id));
-        const fresh = filtered.filter((e) => !existingIds.has(e.id));
+        const fresh: APIResponse[] = [];
+        let exhausted = false;
+
+        // Non-live can't be bounded server-side, so keep pulling raw pages (advancing `start` by
+        // what the API actually returned) until a full page survives the filter. Alpine only ever
+        // sees the kept events, so pagination and "view more" stay clean.
+        do {
+          const results = await fetchEvents(
+            applyLiveWindow({
+              ...this.baseParams,
+              ...this.applyFilters(getFiltersStore()),
+              start: this.start,
+              limit,
+            })
+          );
+
+          if (results === null) {
+            this.status = 'error';
+            return;
+          }
+
+          this.start += results.length;
+          exhausted = results.length < limit;
+          const kept = filterExcludedTopics(this.$root, nonLive ? filterNonLive(results) : results);
+          for (const e of kept) {
+            if (!existingIds.has(e.id)) {
+              existingIds.add(e.id);
+              fresh.push(e);
+            }
+          }
+        } while (nonLive && !exhausted && fresh.length < limit);
 
         this.events = [...this.events, ...fresh];
 
@@ -142,12 +162,11 @@ window.addEventListener('alpine:init', () => {
         this.status = this.events.length ? 'ready' : 'empty';
         // ponytail: naive depleted heuristic (fewer results than asked for) — good enough until
         // dedup against `is_online` near-duplicates starves it; switch to a server `has_more` flag if so.
-        if (results.length < limit) this.depleted = true;
+        if (exhausted) this.depleted = true;
       },
 
       viewMore() {
         this.moreLoading = true;
-        this.start += this.baseParams.limit ?? 12;
         this.query().finally(() => {
           this.moreLoading = false;
         });
@@ -184,6 +203,10 @@ window.addEventListener('alpine:init', () => {
 
       dateRange(event) {
         return getEventDateRange(event);
+      },
+
+      dateParts(value) {
+        return getDateParts(value);
       },
 
       timeRange(start, end) {
