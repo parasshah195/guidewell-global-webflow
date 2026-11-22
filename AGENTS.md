@@ -116,6 +116,7 @@ Work on `dev` for most changes; fork a branch from `dev` for a large feature, th
     `<template>` in JS at runtime, before `Alpine.start()`. This keeps the element visible/editable in
     Webflow's live preview while still behaving correctly once Alpine boots.
 - **One API function:** `fetchEvents(params)` in `src/api/events.ts`. No class hierarchy.
+- **Live by default:** every `eventList` queries upcoming events (start date in the future); `query-live="false"` switches to on-demand (no/past start date) — PRD §6.
 - **One generic component:** `eventList` covers every events feed; behaviour is set by `query-*`
   (API params) and `data-*` (display) attributes read off `this.$root`. See the **attribute contract**
   in PRD §6 — that's the public API Webflow authors use. Webinar cards opt in to CMS tag images with

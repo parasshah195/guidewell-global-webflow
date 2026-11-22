@@ -11,8 +11,10 @@ import type { AlpineComponent } from '$types/alpine';
 import { setEventQueryFromAttr } from '$utils/event-attrs';
 import type { EventGroup } from '$utils/event-format';
 import {
+  applyLiveWindow,
   buildQueryFromFilters,
   filterExcludedTopics,
+  filterNonLive,
   getEventDateRange,
   getPriceSummary,
   getTimeRange,
@@ -109,12 +111,12 @@ window.addEventListener('alpine:init', () => {
 
       async query() {
         const limit = this.baseParams.limit ?? 12;
-        const apiBody: QueryParams = {
+        const apiBody = applyLiveWindow({
           ...this.baseParams,
           ...this.applyFilters(getFiltersStore()),
           start: this.start,
           limit,
-        };
+        });
 
         const results = await fetchEvents(apiBody);
 
@@ -123,7 +125,9 @@ window.addEventListener('alpine:init', () => {
           return;
         }
 
-        const filtered = filterExcludedTopics(this.$root, results);
+        const topicFiltered = filterExcludedTopics(this.$root, results);
+        const filtered =
+          this.baseParams.live === false ? filterNonLive(topicFiltered) : topicFiltered;
         const existingIds = new Set(this.events.map((e) => e.id));
         const fresh = filtered.filter((e) => !existingIds.has(e.id));
 

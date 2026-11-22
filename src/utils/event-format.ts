@@ -2,8 +2,8 @@
  * Date/time/price formatting for events. Uses the GLOBAL `dayjs` (initialised once in entry.ts) —
  * never `import dayjs` here, so esbuild's multi-entry build doesn't duplicate the library (PRD §3.5).
  */
-import { DEFAULT_TIMEZONE, PROCTORED_TAG, TEST_TOPIC_IDS, VAT_MULTIPLIER } from '$constants';
 import type { APIResponse, QueryParams } from '$api/types';
+import { DEFAULT_TIMEZONE, PROCTORED_TAG, TEST_TOPIC_IDS, VAT_MULTIPLIER } from '$constants';
 import type { FiltersStore } from '$stores/filters';
 
 export interface EventGroup {
@@ -155,6 +155,30 @@ export function groupEventsByLocation(events: APIResponse[]): EventGroup[] {
     const events = buckets.get(name) ?? [];
     return { name, events, priceSummary: getPriceSummary(events) };
   });
+}
+
+/**
+ * Live = starts in the future (confirmed by Ryan, GWE backend, 2026-09-16: on-demand events have
+ * no start date or one in the past). Default live; `query-live="false"` selects on-demand.
+ * Strips the client-only `live` key and narrows the date window to the future/past so a user date
+ * filter can never widen it.
+ */
+export function applyLiveWindow(params: QueryParams, now = new Date()): QueryParams {
+  const { live = true, ...rest } = params;
+  const iso = now.toISOString();
+  if (live) {
+    if (!rest.after || new Date(rest.after) < now) rest.after = iso;
+  } else if (!rest.before || new Date(rest.before) > now) {
+    rest.before = iso;
+  }
+  return rest;
+}
+
+/**
+ * Non-live only: the API can't express "no start date", so drop anything still upcoming client-side.
+ */
+export function filterNonLive(events: APIResponse[], now = new Date()): APIResponse[] {
+  return events.filter((e) => !e.starts_at || new Date(e.starts_at) < now);
 }
 
 /**

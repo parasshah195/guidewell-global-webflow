@@ -4,8 +4,10 @@ import type { APIResponse } from '$api/types';
 import type { FiltersStore } from '$stores/filters';
 
 import {
+  applyLiveWindow,
   applyVAT,
   buildQueryFromFilters,
+  filterNonLive,
   getEventDateRange,
   getPriceSummary,
   getTimeRange,
@@ -101,7 +103,7 @@ test('isProctored checks the Proctored tag', () => {
 
 test('isMultiDayEvent needs a class with >1 sessions', () => {
   const schedule = (sessions_count: number) =>
-    ({ sessions_count } as NonNullable<APIResponse['class_schedule']>);
+    ({ sessions_count }) as NonNullable<APIResponse['class_schedule']>;
   expect(isMultiDayEvent(evt({ type: 'class', class_schedule: schedule(2) }))).toBe(true);
   expect(isMultiDayEvent(evt({ type: 'class', class_schedule: schedule(1) }))).toBe(false);
   expect(isMultiDayEvent(evt({ type: 'class', class_schedule: null }))).toBe(false);
@@ -123,8 +125,12 @@ test('buildQueryFromFilters maps location → is_online', () => {
 });
 
 test('buildQueryFromFilters lets a module with query-is_online ignore the location filter', () => {
-  expect('is_online' in buildQueryFromFilters(filters({ location: 'online' }), { is_online: false })).toBe(false);
-  expect('is_online' in buildQueryFromFilters(filters({ location: 'in-person' }), { is_online: true })).toBe(false);
+  expect(
+    'is_online' in buildQueryFromFilters(filters({ location: 'online' }), { is_online: false })
+  ).toBe(false);
+  expect(
+    'is_online' in buildQueryFromFilters(filters({ location: 'in-person' }), { is_online: true })
+  ).toBe(false);
 });
 
 test('buildQueryFromFilters maps the simple flags', () => {
@@ -206,4 +212,33 @@ test('getTimeRange appends a timezone abbreviation by default', () => {
 
 test('getTimeRange preserves an API timestamp offset', () => {
   expect(getTimeRange('2026-09-12T10:00:00+01:00', null, false)).toBe('10:00 AM');
+});
+
+const NOW = new Date('2026-11-22T12:00:00Z');
+
+test('applyLiveWindow: live (default) sets after=now and strips the live key', () => {
+  expect(applyLiveWindow({ limit: 5 }, NOW)).toEqual({ limit: 5, after: NOW.toISOString() });
+});
+
+test('applyLiveWindow: a past user date cannot widen the live window, a future one is kept', () => {
+  expect(applyLiveWindow({ after: '2026-01-01' }, NOW).after).toBe(NOW.toISOString());
+  expect(applyLiveWindow({ after: '2027-01-01T00:00:00Z' }, NOW).after).toBe(
+    '2027-01-01T00:00:00Z'
+  );
+});
+
+test('applyLiveWindow: live=false sets before=now and strips the live key', () => {
+  expect(applyLiveWindow({ live: false }, NOW)).toEqual({ before: NOW.toISOString() });
+});
+
+test('filterNonLive keeps dateless and past events, drops upcoming', () => {
+  const kept = filterNonLive(
+    [
+      evt({ id: 1, starts_at: null }),
+      evt({ id: 2, starts_at: '2026-10-01T10:00:00Z' }),
+      evt({ id: 3, starts_at: '2026-12-01T10:00:00Z' }),
+    ],
+    NOW
+  );
+  expect(kept.map((e) => e.id)).toEqual([1, 2]);
 });

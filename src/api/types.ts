@@ -31,6 +31,8 @@ export type QueryParams = {
   extended_time_available?: boolean;
   days_of_week?: Array<string>;
   location_id?: number;
+  /** Client-side only, never sent to the API: `false` selects non-live (on-demand) events. */
+  live?: boolean;
 };
 
 export const QueryParamsProperties: (keyof QueryParams)[] = [
@@ -51,6 +53,7 @@ export const QueryParamsProperties: (keyof QueryParams)[] = [
   'extended_time_available',
   'days_of_week',
   'location_id',
+  'live',
 ];
 
 export interface APIResponse {

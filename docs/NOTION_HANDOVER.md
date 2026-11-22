@@ -75,7 +75,7 @@ CMS image bank, Google Sheet URL, hidden collection lists: **where** they sit (p
 
 ### 7. Authoring notes
 
-Short bullets: optional attributes (`query-is_online`), filters this page does **not** use, local script mode for debugging. Positive phrasing: “Upcoming empty → hide section” rather than a long list of bans.
+Short bullets: optional attributes (`query-is_online`, `query-live="false"` for on-demand — default is upcoming events only), filters this page does **not** use, local script mode for debugging. Positive phrasing: “Upcoming empty → hide section” rather than a long list of bans.
 
 ---
 
