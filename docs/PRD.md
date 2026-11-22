@@ -147,11 +147,15 @@ number (`12`), date (`2026-07-01`), boolean (`true`/`false`), array (`['SAT','AC
 live/on-demand field: an event is **live** when it has a start date in the future; **on-demand** events
 have no start date or one in the past (registration is just re-opened afterwards). So `eventList`
 defaults to `live=true` and sends `after=<now>` (a user `after` can only move it later). Set
-`query-live="false"` for on-demand: it sends `before=<now>` and, since the API cannot express "no start
-date", `filterNonLive()` also drops any still-upcoming result client-side. `live` is stripped before the
-request (`applyLiveWindow()` in `event-format.ts`). **Verified 2026-11-22:** the live API returns only
-upcoming events and answers `before=<now>` with 0 rows, so `live=false` stays empty until OneCanoe
-returns re-opened past/dateless events. Category doesn't matter — practice tests can be either.
+`query-live="false"` for on-demand: it sends **no date bound** (a `before` would drop dateless rows
+server-side, and the team confirmed on-demand `starts_at`/`ends_at` can be `null`). `filterNonLive()` then
+keeps events with no start date or a past one **in code, before anything reaches Alpine**, and `query()`
+keeps pulling raw pages (advancing `start` by what the API returned) until a full page survives, so
+pagination and "view more" never see the discarded rows. `live` is stripped before the request
+(`applyLiveWindow()` in `event-format.ts`). **Unverified (2026-11-22):** the live API currently returns
+only upcoming events and no null-date rows; we need one real on-demand `event_code` from OneCanoe to
+confirm it returns them at all. Cost: upcoming events still occupy raw pages, so non-live may take
+extra requests. Category doesn't matter — practice tests can be either.
 
 > **Coercion ceiling (`parseAttrValue`):** detection is by string _shape_, not by target key. Edge:
 > an all-digit `event_code` would coerce to a number, and `Date.parse` is loose. Acceptable for the

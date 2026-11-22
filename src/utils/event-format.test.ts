@@ -227,8 +227,8 @@ test('applyLiveWindow: a past user date cannot widen the live window, a future o
   );
 });
 
-test('applyLiveWindow: live=false sets before=now and strips the live key', () => {
-  expect(applyLiveWindow({ live: false }, NOW)).toEqual({ before: NOW.toISOString() });
+test('applyLiveWindow: live=false sends no date bound (it would drop dateless rows) and strips live', () => {
+  expect(applyLiveWindow({ live: false, limit: 5 }, NOW)).toEqual({ limit: 5 });
 });
 
 test('filterNonLive keeps dateless and past events, drops upcoming', () => {

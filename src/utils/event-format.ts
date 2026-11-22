@@ -160,22 +160,18 @@ export function groupEventsByLocation(events: APIResponse[]): EventGroup[] {
 /**
  * Live = starts in the future (confirmed by Ryan, GWE backend, 2026-09-16: on-demand events have
  * no start date or one in the past). Default live; `query-live="false"` selects on-demand.
- * Strips the client-only `live` key and narrows the date window to the future/past so a user date
- * filter can never widen it.
+ * Strips the client-only `live` key. Live sends `after=<now>` (a user `after` can only move it
+ * later). Non-live sends no date bound: a `before` would drop dateless rows server-side, so
+ * `filterNonLive` selects them client-side instead.
  */
 export function applyLiveWindow(params: QueryParams, now = new Date()): QueryParams {
   const { live = true, ...rest } = params;
-  const iso = now.toISOString();
-  if (live) {
-    if (!rest.after || new Date(rest.after) < now) rest.after = iso;
-  } else if (!rest.before || new Date(rest.before) > now) {
-    rest.before = iso;
-  }
+  if (live && (!rest.after || new Date(rest.after) < now)) rest.after = now.toISOString();
   return rest;
 }
 
 /**
- * Non-live only: the API can't express "no start date", so drop anything still upcoming client-side.
+ * Non-live only: keeps events with no start date or one in the past.
  */
 export function filterNonLive(events: APIResponse[], now = new Date()): APIResponse[] {
   return events.filter((e) => !e.starts_at || new Date(e.starts_at) < now);
