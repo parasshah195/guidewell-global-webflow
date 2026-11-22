@@ -191,6 +191,7 @@ extra requests. Category doesn't matter — practice tests can be either.
 `x-show="status === 'error'"` etc.; no contradictory/limbo combos), plus the orthogonal sub-flags
 `depleted` and `moreLoading` (apply only while `ready`). Helpers: `dateRange(event)`,
 `dateParts(isoTimestamp)` (`{ weekday, day, monthYear }` in London time, or `null` — for a calendar date badge; bind start and end separately, show the end badge with `x-show="event.ends_at"`),
+`descriptionText(event)` (the markdown `description` intro before its first heading, as plain text with blank-line paragraph breaks — bind with `x-text` on an element with `white-space: pre-line`),
 `timeRange(start, end)`, `isProctored(event)` (reads the `'Proctored'` tag — for a per-event badge;
 see §10), `tagImage(event)` (`{ src, alt }` from the CMS bank when `data-tag-images` is set),
 `viewMore()`.
