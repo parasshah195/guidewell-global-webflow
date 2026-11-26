@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { collectTagImages, pickTagImage } from './tag-images';
+import { collectTagImages, findLocationImage, pickTagImage } from './tag-images';
 
 function fakeRoot(
   imgs: { tag?: string; tagName?: string; src?: string; alt?: string }[] | null
@@ -60,4 +60,24 @@ test('pickTagImage uses the first tag that has images and the injected random', 
   expect(pickTagImage(['SAT Prep'], bank, () => 0.99)).toEqual({ src: '/b.jpg', alt: '2' });
   expect(pickTagImage(['none'], bank)).toBe(null);
   expect(pickTagImage([], bank)).toBe(null);
+});
+
+test('findLocationImage matches img[location_id] and falls back to empty', () => {
+  const imgs: Record<string, { src: string | null; alt: string | null }> = {
+    'img[location_id="4438120"]': { src: '/meridien.png', alt: 'Meridien House' },
+    'img[location_id="4453632"]': { src: '/wetherby.png', alt: null },
+    'img[location_id="1"]': { src: null, alt: 'no src' },
+  };
+  const root = {
+    querySelector: (sel: string) => {
+      const i = imgs[sel];
+      return i ? { getAttribute: (n: string) => (n === 'src' ? i.src : i.alt) } : null;
+    },
+  } as unknown as ParentNode;
+
+  expect(findLocationImage(root, 4438120)).toEqual({ src: '/meridien.png', alt: 'Meridien House' });
+  expect(findLocationImage(root, 4453632)).toEqual({ src: '/wetherby.png', alt: '' });
+  expect(findLocationImage(root, 1)).toEqual({ src: '', alt: '' });
+  expect(findLocationImage(root, 999)).toEqual({ src: '', alt: '' });
+  expect(findLocationImage(root, null)).toEqual({ src: '', alt: '' });
 });

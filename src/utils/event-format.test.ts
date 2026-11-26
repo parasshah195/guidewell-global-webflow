@@ -172,6 +172,14 @@ test('groupEventsByLocation buckets, falls back, and ranks', () => {
   expect(groups.map((g) => g.name)).toEqual(['London', 'Online', 'Online (On Demand)']);
 });
 
+test('groupEventsByLocation carries the location id for location images', () => {
+  const groups = groupEventsByLocation([
+    evt({ location_name: 'Meridien House', location_id: 4438120 }),
+    evt({ location_name: null, starts_at: '2026-07-01T09:00:00Z' }),
+  ]);
+  expect(groups.map((g) => g.locationId)).toEqual([4438120, null]);
+});
+
 test('groupEventsByLocation attaches a per-group price summary', () => {
   const groups = groupEventsByLocation([
     evt({ location_name: 'London', price: '100' }),
