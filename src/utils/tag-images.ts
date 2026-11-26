@@ -46,3 +46,14 @@ export function pickTagImage(
   }
   return null;
 }
+
+/**
+ * Location photo for a `groups` card: the CMS `<img>` whose `location_id` attribute equals the
+ * OneCanoe `location_id`. Anywhere on the page, so one hidden list can serve several eventLists.
+ */
+export function findLocationImage(root: ParentNode, locationId: number | null): TagImage {
+  if (locationId === null) return EMPTY_TAG_IMAGE;
+  const img = root.querySelector(`img[location_id="${locationId}"]`);
+  const src = img?.getAttribute('src');
+  return src ? { src, alt: img?.getAttribute('alt') || '' } : EMPTY_TAG_IMAGE;
+}

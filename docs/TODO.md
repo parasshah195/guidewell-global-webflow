@@ -222,4 +222,6 @@ Section refs (§) point to PRD sections. Keep it lean — see PRD §11.
       (`VAT_MULTIPLIER = 1.2`); `fetchEvents` now rewrites `price` to VAT-inclusive at the API
       boundary since the frontend always shows inc-VAT pricing. (CSV #6)
 - [ ] Audience filter for live events (students/schools/all)? (CSV #1)
-- [ ] On-demand test links (hardcoded `on_demand=<id>` URLs, not in the events API — see PRD §10) + location images for Practice Tests. (CSV #6)
+- [ ] On-demand test links (hardcoded `on_demand=<id>` URLs, not in the events API — see PRD §10). (CSV #6)
+- [x] Location images code: `group.locationId` + `locationImage(group)` read the `Test locations` CMS list (PRD §6). (CSV #6)
+- [ ] Location images live: bind the in-person card image in Webflow, and confirm the CMS Location IDs match OneCanoe once in-person classes/tests are in the API. (CSV #6)

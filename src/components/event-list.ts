@@ -23,7 +23,13 @@ import {
   groupEventsByLocation,
   isProctored,
 } from '$utils/event-format';
-import { collectTagImages, EMPTY_TAG_IMAGE, pickTagImage, type TagImage } from '$utils/tag-images';
+import {
+  collectTagImages,
+  EMPTY_TAG_IMAGE,
+  findLocationImage,
+  pickTagImage,
+  type TagImage,
+} from '$utils/tag-images';
 
 type Status = 'loading' | 'error' | 'empty' | 'ready';
 
@@ -53,6 +59,7 @@ interface EventListState {
   isProctored(event: APIResponse): boolean;
   tagImages: Record<number, TagImage>;
   tagImage(event: APIResponse): TagImage;
+  locationImage(group: EventGroup): TagImage;
 }
 
 window.addEventListener('alpine:init', () => {
@@ -225,6 +232,10 @@ window.addEventListener('alpine:init', () => {
 
       tagImage(event) {
         return this.tagImages[event.id] ?? EMPTY_TAG_IMAGE;
+      },
+
+      locationImage(group) {
+        return findLocationImage(document, group.locationId);
       },
     } as AlpineComponent<EventListState>;
   });

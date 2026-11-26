@@ -8,6 +8,7 @@ import type { FiltersStore } from '$stores/filters';
 
 export interface EventGroup {
   name: string;
+  locationId: number | null;
   events: APIResponse[];
   priceSummary: string;
 }
@@ -188,7 +189,8 @@ export function groupEventsByLocation(events: APIResponse[]): EventGroup[] {
 
   return names.map((name) => {
     const events = buckets.get(name) ?? [];
-    return { name, events, priceSummary: getPriceSummary(events) };
+    const locationId = events[0]?.location_id ?? null;
+    return { name, locationId, events, priceSummary: getPriceSummary(events) };
   });
 }
 

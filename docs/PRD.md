@@ -124,7 +124,7 @@ sheet to OneCanoe's `APIResponse` or reuse `eventList`.
 | ----- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1     | Events API across pages             | `eventList` instances with different `query-*` attrs per page.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | 6     | Practice Tests page + filters       | Mock Tests (v2) page uses **two `eventList` instances**: in-person (`query-is_online="false"` + `data-group-by="location"` → `groups` loop per location + `priceSummary`) and online-live (`query-is_online="true"` → flat `events` loop). On-demand tests are static Webflow cards: location and test name filter them; date, weekday, ET, and proctored filters do not apply. Both API lists use `data-use-filters`. Filter UI binds directly to the `filters` store. State shown via `x-show="status === '...'"` on wrapper divs around each ComponentInstance. |
-| 7     | Group Classes (SAT only)            | `eventList` with `query-category="['class']"` + SAT `query-topics`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 7     | Group Classes (SAT only)            | `eventList` with `query-category="['class']"` + SAT `query-topics`; in-person groups show `locationImage(group)`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | 8     | Webinars page                       | Two `eventList` instances: Featured (limit 3) + Upcoming (date-sorted). Both opt in with `data-tag-images`; one page-level CMS image bank (`data-el="tag-images"`) matched on event `tags`.                                                                                                                                                                                                                                                                                                                                                                                                  |
 | 10    | Testing / edge cases                | `status` (`loading`/`error`/`empty`/`ready`) + `depleted`/`moreLoading` states on `eventList`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | 3     | Combination sliders (blog + events) | Deferred — "nice to have, not a priority."                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -179,7 +179,7 @@ extra requests. Category doesn't matter — practice tests can be either.
 
 | Attribute             | Values                 | Effect                                                                                                                                                     |
 | --------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-group-by`       | `location` \| (absent) | `location`: expose `groups` (in-person locations first, then `Online`, then `Online (On Demand)`), each with a `priceSummary`. Absent: flat `events` list. |
+| `data-group-by`       | `location` \| (absent) | `location`: expose `groups` (in-person locations first, then `Online`, then `Online (On Demand)`), each with a `locationId` and `priceSummary`. Absent: flat `events` list. |
 | `data-use-filters`    | present / absent       | Subscribe to the `filters` store; re-query on change.                                                                                                      |
 | `data-topics-exclude` | `SAT,ACT`              | Drop events whose topics intersect this list.                                                                                                              |
 | `data-tag-images`     | present / absent       | After each fetch, match `event.tags` to CMS `<img>`s in the page bank (`[data-el="tag-images"]`). Exposes `tagImage(event)` → `{ src, alt }` (cached per event id). Absent: helper returns empty strings. |
@@ -194,7 +194,7 @@ extra requests. Category doesn't matter — practice tests can be either.
 `descriptionText(event)` (the markdown `description` intro before its first heading, as plain text with blank-line paragraph breaks — bind with `x-text` on an element with `white-space: pre-line`),
 `timeRange(start, end)`, `isProctored(event)` (reads the `'Proctored'` tag — for a per-event badge;
 see §10), `tagImage(event)` (`{ src, alt }` from the CMS bank when `data-tag-images` is set),
-`viewMore()`.
+`locationImage(group)` (`{ src, alt }` for a `groups` card — see Location images below), `viewMore()`.
 
 **Tag images (Webinars — CMS in the DOM, not the API):** OneCanoe has no image fields. Put a hidden
 Webflow CMS collection list **once on the page** (not inside an `eventList` root) with
@@ -204,6 +204,14 @@ Webflow CMS collection list **once on the page** (not inside an `eventList` root
 and `x-bind:alt="tagImage(event).alt"`; leave `srcset` and `sizes` empty so Webflow responsive
 images don't override. The pick is: first event tag that has images, then one image from that tag
 (cached — not re-rolled on Alpine re-render).
+
+**Location images (in-person `groups` cards — CMS in the DOM):** the `Test locations` collection
+holds one item per venue with its OneCanoe `location_id`. Put a hidden Webflow collection list
+anywhere on the page; each `<img>` carries a `location_id` attribute bound to that field (the
+Summit markup, so no rename). `locationImage(group)` returns the `<img>` whose `location_id`
+equals `group.locationId`, or empty strings. In the card keep the static default image and add a
+second image with `x-bind:src="locationImage(group).src"`, `x-bind:alt="locationImage(group).alt"`
+and `x-show="locationImage(group).src"`, with `srcset` and `sizes` empty.
 
 ### Filter UI bindings (Webflow → `filters` store)
 
@@ -274,7 +282,7 @@ src/
     event-attrs.ts        # setEventQueryFromAttr() + parseAttrValue() (exported, tested)
     event-attrs.test.ts   # bun:test — parser type coercion
     event-format.ts       # date/time/price helpers — uses GLOBAL dayjs (not imported) + filterExcludedTopics()
-    tag-images.ts         # collectTagImages() + pickTagImage() (CMS bank → { src, alt })
+    tag-images.ts         # collectTagImages() + pickTagImage() + findLocationImage() (CMS → { src, alt })
     tag-images.test.ts    # bun:test — bank indexing + pick / random injection
   types/
     global.d.ts           # EDIT: window.Alpine, window.startAlpine, window.dayjs (+ global dayjs)
@@ -328,6 +336,7 @@ export function pickTagImage(
   bank: Map<string, TagImage[]>,
   random?: () => number
 ): TagImage | null;
+export function findLocationImage(root: ParentNode, locationId: number | null): TagImage;
 
 // components/university-fair-events.ts — all production behavior stays in this one file.
 export function parseSheetCsv(csv: string): { columns: string[]; rows: Record<string, string>[] };
@@ -389,7 +398,7 @@ export function getFiltersStore(): FiltersStore; // window.Alpine.store(FILTERS_
   `extended_time_available`, days→`days_of_week`, proctored→`proctored`. A cleared filter is simply
   absent from the returned partial — no stale keys (see §3.7).
 - `get groups()`: bucket `events` by `location_name ?? (starts_at ? 'Online' : 'Online (On Demand)')`;
-  in-person first; each `{ name, events, priceSummary }`.
+  in-person first; each `{ name, locationId, events, priceSummary }` (`locationId` from the first event).
 
 ---
 
@@ -462,7 +471,8 @@ then starts (guarded on `DOMContentLoaded`).
 **Still to confirm with GWG/OneCanoe (do not block foundation work):**
 
 - Audience filter for live events (students/schools/all)? (CSV #1)
-- Location images for Practice Tests page. (CSV #6)
+- Location images: code reads the `Test locations` CMS list (§6). Confirm the CMS Location IDs
+  match OneCanoe `location_id`s once in-person classes/tests are in the API (none on 2026-11-26). (CSV #6)
 
 **Known edge (build only if it bites):** rapid filter changes can let an earlier `fetchEvents`
 resolve _after_ a later one and overwrite fresh results. The ~200ms re-query debounce (§8) shrinks
